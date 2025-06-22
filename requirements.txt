@@ -7,3 +7,5 @@ scikit-learn==1.7.0
 opencv-python-headless==4.11.0.86
 pillow==11.2.1
 reportlab==4.2.5
+plotly==5.22.0
+kaleido==0.2.1
