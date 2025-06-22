@@ -650,6 +650,492 @@ def show_batch_analysis(patient):
             results_container = st.container()
             
             batch_results = []
+            
+            for i, uploaded_file in enumerate(uploaded_files):
+                # Actualizar barra de progreso
+                progress = (i + 1) / len(uploaded_files)
+                progress_bar.progress(progress)
+                
+                # Procesar imagen
+                image = Image.open(uploaded_file)
+                results = ImageAnalyzer.analyze_image(image, "batch")
+                
+                batch_results.append({
+                    'filename': uploaded_file.name,
+                    'results': results
+                })
+                
+                # Mostrar progreso
+                with results_container:
+                    st.write(f"✅ Procesada: {uploaded_file.name}")
+            
+            # Mostrar resumen del lote
+            st.success("🎉 Análisis por lotes completado!")
+            show_batch_summary(batch_results)
+            
+            # Guardar resultados del lote
+            batch_record = {
+                'patient_id': patient['id'],
+                'batch_results': batch_results,
+                'batch_date': datetime.now(),
+                'total_images': len(uploaded_files)
+            }
+            st.session_state.analysis_results.append(batch_record)
 
-for i, uploaded_file in enumerate(uploaded_files):
-    print(uploaded_file)  # 4 espacios aquí
+def show_technique_comparison(patient):
+    st.subheader("⚖️ Comparación de Técnicas")
+    
+    uploaded_file = st.file_uploader("📷 Cargar imagen para comparar técnicas", 
+                                   type=['png', 'jpg', 'jpeg', 'tiff'])
+    
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Imagen para Comparación", use_column_width=True)
+        
+        if st.button("🔬 Comparar Técnicas", type="primary"):
+            with st.spinner("Comparando diferentes técnicas de análisis..."):
+                import time
+                time.sleep(3)  # Simular procesamiento
+                
+                # Simular diferentes técnicas
+                techniques = ['CNN Básico', 'ResNet-50', 'EfficientNet', 'Vision Transformer']
+                comparison_results = {}
+                
+                for technique in techniques:
+                    results = ImageAnalyzer.analyze_image(image, f"comparison_{technique}")
+                    comparison_results[technique] = results
+                
+                show_technique_comparison_results(comparison_results)
+
+def show_analysis_results(results):
+    st.subheader("🎯 Resultados del Análisis")
+    
+    # Resultado principal
+    max_class = max(results['predictions'], key=results['predictions'].get)
+    max_prob = results['predictions'][max_class]
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("🎯 Diagnóstico Principal", max_class, f"{max_prob*100:.1f}%")
+    
+    with col2:
+        st.metric("🔍 Confianza", f"{results['confidence']*100:.1f}%")
+    
+    with col3:
+        st.metric("📸 Calidad de Imagen", f"{results['image_quality']*100:.1f}%")
+    
+    # Gráfico de probabilidades
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📊 Distribución de Probabilidades")
+        labels = list(results['predictions'].keys())
+        values = [v*100 for v in results['predictions'].values()]
+        
+        fig = px.bar(x=labels, y=values, 
+                    title="Probabilidades por Diagnóstico",
+                    labels={'x': 'Diagnóstico', 'y': 'Probabilidad (%)'})
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        st.subheader("🥧 Vista Circular")
+        fig = px.pie(values=values, names=labels, 
+                    title="Distribución de Probabilidades")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Recomendaciones
+    st.subheader("💡 Recomendaciones Clínicas")
+    for i, rec in enumerate(results['recommendations'], 1):
+        st.write(f"**{i}.** {rec}")
+    
+    # Información técnica
+    with st.expander("🔧 Información Técnica"):
+        st.json({
+            'Timestamp': results['timestamp'].isoformat(),
+            'Analysis Type': results['analysis_type'],
+            'Confidence Score': results['confidence'],
+            'Image Quality Score': results['image_quality']
+        })
+
+def show_batch_summary(batch_results):
+    st.subheader("📈 Resumen del Análisis por Lotes")
+    
+    # Estadísticas generales
+    total_images = len(batch_results)
+    avg_confidence = np.mean([r['results']['confidence'] for r in batch_results])
+    avg_quality = np.mean([r['results']['image_quality'] for r in batch_results])
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("📊 Total Imágenes", total_images)
+    with col2:
+        st.metric("🎯 Confianza Promedio", f"{avg_confidence*100:.1f}%")
+    with col3:
+        st.metric("📸 Calidad Promedio", f"{avg_quality*100:.1f}%")
+    
+    # Distribución de diagnósticos
+    all_predictions = {}
+    for result in batch_results:
+        for diag, prob in result['results']['predictions'].items():
+            if diag not in all_predictions:
+                all_predictions[diag] = []
+            all_predictions[diag].append(prob)
+    
+    # Gráfico de distribución
+    diagnoses = list(all_predictions.keys())
+    avg_probs = [np.mean(all_predictions[diag])*100 for diag in diagnoses]
+    
+    fig = px.bar(x=diagnoses, y=avg_probs,
+                title="Distribución Promedio de Diagnósticos en el Lote",
+                labels={'x': 'Diagnóstico', 'y': 'Probabilidad Promedio (%)'})
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Tabla detallada
+    st.subheader("📋 Resultados Detallados")
+    results_data = []
+    for result in batch_results:
+        max_diag = max(result['results']['predictions'], 
+                      key=result['results']['predictions'].get)
+        max_prob = result['results']['predictions'][max_diag]
+        
+        results_data.append({
+            'Archivo': result['filename'],
+            'Diagnóstico Principal': max_diag,
+            'Probabilidad': f"{max_prob*100:.1f}%",
+            'Confianza': f"{result['results']['confidence']*100:.1f}%",
+            'Calidad': f"{result['results']['image_quality']*100:.1f}%"
+        })
+    
+    df = pd.DataFrame(results_data)
+    st.dataframe(df, use_container_width=True)
+
+def show_technique_comparison_results(comparison_results):
+    st.subheader("⚖️ Comparación de Técnicas")
+    
+    # Tabla comparativa
+    comparison_data = []
+    for technique, results in comparison_results.items():
+        max_diag = max(results['predictions'], key=results['predictions'].get)
+        max_prob = results['predictions'][max_diag]
+        
+        comparison_data.append({
+            'Técnica': technique,
+            'Diagnóstico': max_diag,
+            'Probabilidad': f"{max_prob*100:.1f}%",
+            'Confianza': f"{results['confidence']*100:.1f}%",
+            'Tiempo (s)': np.random.uniform(1.5, 4.2)  # Tiempo simulado
+        })
+    
+    df = pd.DataFrame(comparison_data)
+    st.dataframe(df, use_container_width=True)
+    
+    # Gráfico comparativo
+    techniques = list(comparison_results.keys())
+    diagnoses = list(comparison_results[techniques[0]]['predictions'].keys())
+    
+    fig = go.Figure()
+    
+    for technique in techniques:
+        probs = [comparison_results[technique]['predictions'][diag]*100 
+                for diag in diagnoses]
+        fig.add_trace(go.Scatter(x=diagnoses, y=probs, 
+                               mode='lines+markers', name=technique))
+    
+    fig.update_layout(title="Comparación de Probabilidades por Técnica",
+                     xaxis_title="Diagnóstico",
+                     yaxis_title="Probabilidad (%)")
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+def show_reports():
+    st.header("📊 Gestión de Reportes")
+    
+    if not st.session_state.analysis_results:
+        st.info("📝 No hay análisis realizados. Realice análisis en la sección correspondiente.")
+        return
+    
+    tab1, tab2, tab3 = st.tabs(["📋 Historial", "📄 Generar Reporte", "📈 Estadísticas"])
+    
+    with tab1:
+        st.subheader("Historial de Análisis")
+        
+        # Filtros
+        col1, col2 = st.columns(2)
+        with col1:
+            date_filter = st.date_input("Filtrar por fecha")
+        with col2:
+            patient_filter = st.selectbox("Filtrar por paciente", 
+                                        ["Todos"] + [f"{p['nombre']} {p['apellido']}" 
+                                                   for p in st.session_state.patients_db])
+        
+        # Mostrar historial
+        for i, analysis in enumerate(st.session_state.analysis_results):
+            patient = PatientManager.get_patient(analysis['patient_id'])
+            if patient:
+                with st.expander(f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']}", 
+                               expanded=False):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**Fecha:** {analysis['analysis_date'].strftime('%d/%m/%Y %H:%M')}")
+                        st.write(f"**Paciente:** {patient['nombre']} {patient['apellido']}")
+                        if 'image_name' in analysis:
+                            st.write(f"**Imagen:** {analysis['image_name']}")
+                    
+                    with col2:
+                        if st.button(f"📄 Ver Reporte", key=f"report_{i}"):
+                            pdf_buffer = ReportGenerator.create_pdf_report(
+                                patient, analysis['results'])
+                            st.download_button(
+                                label="⬇️ Descargar PDF",
+                                data=pdf_buffer,
+                                file_name=f"Reporte_{patient['apellido']}_{i+1}.pdf",
+                                mime="application/pdf",
+                                key=f"download_{i}"
+                            )
+    
+    with tab2:
+        st.subheader("Generar Nuevo Reporte")
+        
+        if st.session_state.patients_db and st.session_state.analysis_results:
+            # Selección de análisis
+            analysis_options = []
+            for i, analysis in enumerate(st.session_state.analysis_results):
+                patient = PatientManager.get_patient(analysis['patient_id'])
+                if patient:
+                    analysis_options.append(
+                        f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}"
+                    )
+            
+            selected_analysis = st.selectbox("Seleccionar análisis:", analysis_options)
+            
+            if selected_analysis:
+                analysis_idx = int(selected_analysis.split('#')[1].split(' ')[0]) - 1
+                analysis = st.session_state.analysis_results[analysis_idx]
+                patient = PatientManager.get_patient(analysis['patient_id'])
+                
+                # Opciones del reporte
+                include_images = st.checkbox("Incluir imágenes", value=True)
+                include_recommendations = st.checkbox("Incluir recomendaciones", value=True)
+                include_technical_info = st.checkbox("Incluir información técnica", value=False)
+                
+                if st.button("📄 Generar Reporte Personalizado"):
+                    pdf_buffer = ReportGenerator.create_pdf_report(patient, analysis['results'])
+                    st.download_button(
+                        label="⬇️ Descargar Reporte",
+                        data=pdf_buffer,
+                        file_name=f"Reporte_Personalizado_{patient['apellido']}.pdf",
+                        mime="application/pdf"
+                    )
+    
+    with tab3:
+        st.subheader("Estadísticas Generales")
+        show_statistics()
+
+def show_statistics():
+    if not st.session_state.analysis_results:
+        st.info("No hay datos suficientes para mostrar estadísticas.")
+        return
+    
+    # Métricas generales
+    total_analyses = len(st.session_state.analysis_results)
+    total_patients = len(set(a['patient_id'] for a in st.session_state.analysis_results))
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("🔍 Total Análisis", total_analyses)
+    with col2:
+        st.metric("👥 Pacientes Únicos", total_patients)
+    with col3:
+        avg_analyses = total_analyses / len(st.session_state.patients_db) if st.session_state.patients_db else 0
+        st.metric("📊 Promedio por Paciente", f"{avg_analyses:.1f}")
+    with col4:
+        # Último análisis
+        if st.session_state.analysis_results:
+            last_analysis = max(st.session_state.analysis_results, 
+                              key=lambda x: x['analysis_date'])
+            days_since = (datetime.now() - last_analysis['analysis_date']).days
+            st.metric("📅 Último Análisis", f"Hace {days_since} días")
+    
+    # Gráficos de tendencias
+    st.subheader("📈 Tendencias")
+    
+    # Crear datos de ejemplo para gráficos
+    dates = [datetime.now() - pd.Timedelta(days=30-i) for i in range(30)]
+    analyses_per_day = np.random.poisson(2, 30)  # Simulación
+    
+    df_trend = pd.DataFrame({
+        'Fecha': dates,
+        'Análisis': analyses_per_day
+    })
+    
+    fig = px.line(df_trend, x='Fecha', y='Análisis', 
+                 title="Análisis Realizados por Día (Últimos 30 días)")
+    st.plotly_chart(fig, use_container_width=True)
+
+def show_email_sender():
+    st.header("📧 Envío de Resultados")
+    
+    if not st.session_state.analysis_results:
+        st.warning("⚠️ No hay análisis disponibles para enviar.")
+        return
+    
+    # Configuración SMTP
+    with st.expander("⚙️ Configuración de Email", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            smtp_server = st.text_input("Servidor SMTP", value="smtp.gmail.com")
+            smtp_port = st.number_input("Puerto", value=587)
+            sender_email = st.text_input("Email del remitente")
+            
+        with col2:
+            sender_password = st.text_input("Contraseña", type="password")
+            use_tls = st.checkbox("Usar TLS", value=True)
+    
+    # Selección de análisis para enviar
+    st.subheader("📋 Seleccionar Análisis")
+    
+    analysis_options = []
+    for i, analysis in enumerate(st.session_state.analysis_results):
+        patient = PatientManager.get_patient(analysis['patient_id'])
+        if patient:
+            analysis_options.append({
+                'label': f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}",
+                'index': i,
+                'patient': patient,
+                'analysis': analysis
+            })
+    
+    selected_analyses = st.multiselect(
+        "Seleccionar análisis para enviar:",
+        options=analysis_options,
+        format_func=lambda x: x['label']
+    )
+    
+    if selected_analyses:
+        st.subheader("📧 Configurar Envío")
+        
+        # Destinatarios
+        recipients = []
+        for selected in selected_analyses:
+            patient = selected['patient']
+            if patient.get('email'):
+                recipients.append(patient['email'])
+        
+        # Opciones de envío
+        send_to_patient = st.checkbox("Enviar a pacientes", value=True)
+        
+        additional_emails = st.text_area(
+            "Emails adicionales (separados por comas):",
+            placeholder="doctor@hospital.com, admin@clinica.com"
+        )
+        
+        if additional_emails:
+            additional_list = [email.strip() for email in additional_emails.split(',')]
+            recipients.extend(additional_list)
+        
+        # Personalizar email
+        email_subject = st.text_input(
+            "Asunto del email:",
+            value="Resultados de Análisis Colposcópico"
+        )
+        
+        email_body = st.text_area(
+            "Mensaje personalizado:",
+            value="""Estimado/a paciente,
+
+Adjunto encontrará los resultados de su análisis colposcópico.
+
+Por favor, consulte con su médico tratante para la interpretación de los resultados.
+
+Saludos cordiales,
+Equipo Médico"""
+        )
+        
+        # Botón de envío
+        if st.button("📧 Enviar Reportes", type="primary"):
+            if sender_email and sender_password and recipients:
+                success_count = 0
+                error_count = 0
+                
+                progress_bar = st.progress(0)
+                status_container = st.container()
+                
+                smtp_config = {
+                    'smtp_server': smtp_server,
+                    'port': smtp_port,
+                    'email': sender_email,
+                    'password': sender_password
+                }
+                
+                for i, selected in enumerate(selected_analyses):
+                    progress = (i + 1) / len(selected_analyses)
+                    progress_bar.progress(progress)
+                    
+                    patient = selected['patient']
+                    analysis = selected['analysis']
+                    
+                    # Generar PDF
+                    pdf_buffer = ReportGenerator.create_pdf_report(patient, analysis['results'])
+                    
+                    # Enviar a cada destinatario
+                    patient_recipients = [patient.get('email')] if patient.get('email') else []
+                    if additional_emails:
+                        patient_recipients.extend(additional_list)
+                    
+                    for recipient in patient_recipients:
+                        try:
+                            success, message = EmailSender.send_report_email(
+                                recipient, 
+                                f"{patient['nombre']} {patient['apellido']}", 
+                                pdf_buffer, 
+                                smtp_config
+                            )
+                            
+                            if success:
+                                success_count += 1
+                                with status_container:
+                                    st.success(f"✅ Enviado a {recipient}")
+                            else:
+                                error_count += 1
+                                with status_container:
+                                    st.error(f"❌ Error enviando a {recipient}: {message}")
+                                    
+                        except Exception as e:
+                            error_count += 1
+                            with status_container:
+                                st.error(f"❌ Error enviando a {recipient}: {str(e)}")
+                
+                # Resumen final
+                st.success(f"🎉 Proceso completado: {success_count} enviados exitosamente, {error_count} errores")
+                
+            else:
+                st.error("⚠️ Por favor complete la configuración SMTP y verifique que hay destinatarios válidos")
+    
+    # Historial de envíos
+    st.subheader("📝 Historial de Envíos")
+    
+    if 'email_history' not in st.session_state:
+        st.session_state.email_history = []
+    
+    if st.session_state.email_history:
+        df_history = pd.DataFrame(st.session_state.email_history)
+        st.dataframe(df_history, use_container_width=True)
+    else:
+        st.info("No hay historial de envíos disponible.")
+
+def show_configuration():
+    st.header("⚙️ Configuración del Sistema")
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["🎨 Apariencia", "🤖 Modelo IA", "📧 Email", "💾 Datos"])
+    
+    with tab1:
+        st.subheader("Configuración de Apariencia")
+        
+        # Tema
+        theme = st.se
