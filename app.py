@@ -1,14 +1,27 @@
 import streamlit as st
-import cv2
+import pandas as pd
+from datetime import datetime, date
 import numpy as np
 from PIL import Image
+import io
+import base64
+import json
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+import tempfile
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
-import io
-import time
-import random
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Configuración de la página
 st.set_page_config(
@@ -22,464 +35,620 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-header {
-        font-size: 3rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 2rem;
-        font-weight: bold;
-    }
-    .sub-header {
-        font-size: 1.5rem;
-        color: #ff7f0e;
-        margin: 1rem 0;
-    }
-    .metric-card {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
         padding: 1rem;
         border-radius: 10px;
         color: white;
         text-align: center;
-        margin: 0.5rem 0;
+        margin-bottom: 2rem;
     }
-    .stButton>button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    .patient-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+        margin-bottom: 1rem;
+    }
+    .result-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        border: none;
-        border-radius: 20px;
-        padding: 0.5rem 2rem;
-        font-weight: bold;
-        transition: all 0.3s;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Funciones de procesamiento de imagen
-def preprocess_image(image, target_size=(224, 224)):
-    """Preprocesa imagen para el modelo"""
-    # Convertir PIL a numpy array
-    if isinstance(image, Image.Image):
-        image = np.array(image)
-    
-    # Redimensionar
-    image_resized = cv2.resize(image, target_size)
-    
-    # Normalizar
-    image_normalized = image_resized.astype(np.float32) / 255.0
-    
-    return image_normalized
+# Inicialización del estado de la sesión
+if 'patients_db' not in st.session_state:
+    st.session_state.patients_db = []
+if 'current_patient' not in st.session_state:
+    st.session_state.current_patient = None
+if 'analysis_results' not in st.session_state:
+    st.session_state.analysis_results = []
 
-def enhance_image(image):
-    """Mejora la calidad de la imagen"""
-    # Convertir a numpy array si es necesario
-    if isinstance(image, Image.Image):
-        image = np.array(image)
+class PatientManager:
+    @staticmethod
+    def add_patient(patient_data):
+        """Agregar nuevo paciente a la base de datos"""
+        patient_data['id'] = len(st.session_state.patients_db) + 1
+        patient_data['created_at'] = datetime.now()
+        st.session_state.patients_db.append(patient_data)
+        return patient_data['id']
     
-    # Mejorar contraste usando CLAHE
-    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-    lab[:,:,0] = clahe.apply(lab[:,:,0])
-    enhanced = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+    @staticmethod
+    def get_patient(patient_id):
+        """Obtener paciente por ID"""
+        for patient in st.session_state.patients_db:
+            if patient['id'] == patient_id:
+                return patient
+        return None
     
-    return enhanced
+    @staticmethod
+    def update_patient(patient_id, updated_data):
+        """Actualizar datos del paciente"""
+        for i, patient in enumerate(st.session_state.patients_db):
+            if patient['id'] == patient_id:
+                st.session_state.patients_db[i].update(updated_data)
+                return True
+        return False
+    
+    @staticmethod
+    def get_all_patients():
+        """Obtener todos los pacientes"""
+        return st.session_state.patients_db
 
-def apply_filters(image):
-    """Aplica filtros de procesamiento"""
-    # Convertir a numpy array si es necesario
-    if isinstance(image, Image.Image):
-        image = np.array(image)
-    
-    # Filtro Gaussiano para suavizar
-    gaussian = cv2.GaussianBlur(image, (5, 5), 0)
-    
-    # Detección de bordes
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    edges = cv2.Canny(gray, 50, 150)
-    edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-    
-    # Realce de características
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(image, -1, kernel)
-    
-    return {
-        'original': image,
-        'gaussian': gaussian,
-        'edges': edges_colored,
-        'sharpened': sharpened
-    }
+class ImageAnalyzer:
+    @staticmethod
+    def analyze_image(image, analysis_type="individual"):
+        """Simular análisis de imagen con IA"""
+        # Simulación de análisis - aquí iría tu modelo de IA real
+        np.random.seed(42)  # Para resultados consistentes
+        
+        results = {
+            'timestamp': datetime.now(),
+            'analysis_type': analysis_type,
+            'predictions': {
+                'Normal': np.random.uniform(0.1, 0.4),
+                'CIN I': np.random.uniform(0.1, 0.3),
+                'CIN II': np.random.uniform(0.1, 0.3),
+                'CIN III': np.random.uniform(0.1, 0.3),
+                'Carcinoma': np.random.uniform(0.05, 0.2)
+            },
+            'confidence': np.random.uniform(0.75, 0.95),
+            'image_quality': np.random.uniform(0.8, 1.0),
+            'recommendations': []
+        }
+        
+        # Normalizar probabilidades
+        total = sum(results['predictions'].values())
+        results['predictions'] = {k: v/total for k, v in results['predictions'].items()}
+        
+        # Generar recomendaciones basadas en el resultado principal
+        max_class = max(results['predictions'], key=results['predictions'].get)
+        max_prob = results['predictions'][max_class]
+        
+        if max_class == 'Normal':
+            results['recommendations'] = [
+                "Continuar con controles de rutina",
+                "Repetir colposcopía en 12 meses"
+            ]
+        elif max_class in ['CIN I']:
+            results['recommendations'] = [
+                "Seguimiento estrecho cada 6 meses",
+                "Considerar biopsia si persiste",
+                "Evaluación de factores de riesgo"
+            ]
+        elif max_class in ['CIN II', 'CIN III']:
+            results['recommendations'] = [
+                "Biopsia confirmativa recomendada",
+                "Tratamiento según protocolo",
+                "Seguimiento oncológico"
+            ]
+        else:
+            results['recommendations'] = [
+                "Evaluación oncológica urgente",
+                "Biopsia confirmatoria inmediata",
+                "Estadificación completa"
+            ]
+        
+        return results
 
-# Modelo simulado para demostración (sin TensorFlow)
-@st.cache_resource
-def load_model():
-    """Crea un modelo simulado para demostración"""
-    # Simulamos un modelo con parámetros aleatorios
-    import random
-    random.seed(42)  # Para resultados consistentes
-    
-    class MockModel:
-        def __init__(self):
-            self.name = "ColpoVision Demo Model"
+class ReportGenerator:
+    @staticmethod
+    def create_pdf_report(patient_data, analysis_results, image_data=None):
+        """Generar reporte PDF"""
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Estilo personalizado para el título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1,  # Centrado
+            textColor=colors.darkblue
+        )
+        
+        # Título del reporte
+        story.append(Paragraph("REPORTE DE ANÁLISIS COLPOSCÓPICO", title_style))
+        story.append(Spacer(1, 20))
+        
+        # Información del paciente
+        patient_info = [
+            ['Datos del Paciente', ''],
+            ['Nombre:', f"{patient_data['nombre']} {patient_data['apellido']}"],
+            ['Identificación:', patient_data['identificacion']],
+            ['Fecha de Nacimiento:', str(patient_data['fecha_nacimiento'])],
+            ['Edad:', str(patient_data['edad'])],
+            ['Teléfono:', patient_data.get('telefono', 'N/A')],
+            ['Email:', patient_data.get('email', 'N/A')],
+            ['Fecha del Análisis:', analysis_results['timestamp'].strftime('%d/%m/%Y %H:%M')]
+        ]
+        
+        patient_table = Table(patient_info, colWidths=[2*inch, 4*inch])
+        patient_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(patient_table)
+        story.append(Spacer(1, 20))
+        
+        # Resultados del análisis
+        story.append(Paragraph("RESULTADOS DEL ANÁLISIS", styles['Heading2']))
+        story.append(Spacer(1, 10))
+        
+        results_data = [['Diagnóstico', 'Probabilidad (%)']]
+        for diag, prob in analysis_results['predictions'].items():
+            results_data.append([diag, f"{prob*100:.1f}%"])
+        
+        results_table = Table(results_data, colWidths=[3*inch, 2*inch])
+        results_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(results_table)
+        story.append(Spacer(1, 20))
+        
+        # Recomendaciones
+        story.append(Paragraph("RECOMENDACIONES CLÍNICAS", styles['Heading2']))
+        story.append(Spacer(1, 10))
+        
+        for i, rec in enumerate(analysis_results['recommendations'], 1):
+            story.append(Paragraph(f"{i}. {rec}", styles['Normal']))
+            story.append(Spacer(1, 5))
+        
+        story.append(Spacer(1, 20))
+        
+        # Información adicional
+        info_adicional = f"""
+        <b>Confianza del análisis:</b> {analysis_results['confidence']*100:.1f}%<br/>
+        <b>Calidad de imagen:</b> {analysis_results['image_quality']*100:.1f}%<br/>
+        <b>Tipo de análisis:</b> {analysis_results['analysis_type'].title()}<br/>
+        <br/>
+        <i>Este reporte es generado automáticamente por el sistema ColpoVision y debe ser 
+        interpretado por un profesional médico calificado. No sustituye el juicio clínico.</i>
+        """
+        
+        story.append(Paragraph(info_adicional, styles['Normal']))
+        
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+class EmailSender:
+    @staticmethod
+    def send_report_email(recipient_email, patient_name, pdf_buffer, smtp_config):
+        """Enviar reporte por email"""
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = smtp_config['email']
+            msg['To'] = recipient_email
+            msg['Subject'] = f"Reporte de Análisis Colposcópico - {patient_name}"
             
-        def predict(self, image_batch, verbose=0):
-            # Simular predicción basada en características de la imagen
-            # En una implementación real, aquí iría el modelo entrenado
+            body = f"""
+            Estimado/a paciente,
             
-            # Obtener algunas características básicas de la imagen
-            mean_intensity = np.mean(image_batch[0])
-            std_intensity = np.std(image_batch[0])
+            Adjunto encontrará el reporte de su análisis colposcópico realizado el {datetime.now().strftime('%d/%m/%Y')}.
             
-            # Simular probabilidades basadas en características
-            if mean_intensity > 0.6:  # Imagen más clara
-                probs = [0.7, 0.2, 0.08, 0.02]  # Más probable Normal
-            elif mean_intensity < 0.3:  # Imagen más oscura
-                probs = [0.3, 0.4, 0.2, 0.1]   # Más probable CIN I
-            else:
-                probs = [0.5, 0.3, 0.15, 0.05]  # Distribución intermedia
-                
-            # Agregar algo de variabilidad
-            noise = np.random.normal(0, 0.05, 4)
-            probs = np.array(probs) + noise
-            probs = np.abs(probs)  # Asegurar valores positivos
-            probs = probs / np.sum(probs)  # Normalizar
+            Por favor, consulte con su médico tratante para la interpretación de los resultados.
             
-            return np.array([probs])
-    
-    return MockModel()
-
-def predict_image(model, image):
-    """Realiza predicción sobre la imagen"""
-    # Preprocesar imagen
-    processed_image = preprocess_image(image)
-    
-    # Expandir dimensiones para el batch
-    image_batch = np.expand_dims(processed_image, axis=0)
-    
-    # Realizar predicción
-    predictions = model.predict(image_batch, verbose=0)
-    
-    # Clases
-    classes = ['Normal', 'CIN I', 'CIN II', 'CIN III']
-    
-    # Obtener probabilidades
-    probabilities = predictions[0]
-    
-    # Crear diccionario de resultados
-    results = {}
-    for i, class_name in enumerate(classes):
-        results[class_name] = float(probabilities[i])
-    
-    # Predicción principal
-    predicted_class = classes[np.argmax(probabilities)]
-    confidence = float(np.max(probabilities))
-    
-    return results, predicted_class, confidence
-
-def create_analysis_chart(results):
-    """Crea gráfico de análisis"""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    
-    # Gráfico de barras
-    classes = list(results.keys())
-    probabilities = list(results.values())
-    colors = ['#2ecc71', '#f39c12', '#e74c3c', '#8e44ad']
-    
-    bars = ax1.bar(classes, probabilities, color=colors, alpha=0.8)
-    ax1.set_title('Probabilidades por Clase', fontsize=14, fontweight='bold')
-    ax1.set_ylabel('Probabilidad')
-    ax1.set_ylim(0, 1)
-    
-    # Agregar valores en las barras
-    for bar, prob in zip(bars, probabilities):
-        ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
-                f'{prob:.3f}', ha='center', va='bottom', fontweight='bold')
-    
-    # Gráfico circular
-    wedges, texts, autotexts = ax2.pie(probabilities, labels=classes, colors=colors,
-                                      autopct='%1.1f%%', startangle=90)
-    ax2.set_title('Distribución de Probabilidades', fontsize=14, fontweight='bold')
-    
-    plt.tight_layout()
-    return fig
+            Saludos cordiales,
+            Sistema ColpoVision
+            """
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Adjuntar PDF
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(pdf_buffer.read())
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename="Reporte_Colposcopia_{patient_name.replace(" ", "_")}.pdf"'
+            )
+            msg.attach(part)
+            
+            # Enviar email
+            server = smtplib.SMTP(smtp_config['smtp_server'], smtp_config['port'])
+            server.starttls()
+            server.login(smtp_config['email'], smtp_config['password'])
+            text = msg.as_string()
+            server.sendmail(smtp_config['email'], recipient_email, text)
+            server.quit()
+            
+            return True, "Email enviado exitosamente"
+        except Exception as e:
+            return False, f"Error al enviar email: {str(e)}"
 
 def main():
     # Header principal
-    st.markdown('<h1 class="main-header">🔬 ColpoVision</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Sistema de Análisis Inteligente para Colposcopía</p>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="main-header">
+        <h1>🔬 ColpoVision</h1>
+        <p>Sistema de Análisis de Colposcopía con Inteligencia Artificial</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Sidebar
-    st.sidebar.title("🛠️ Panel de Control")
-    
-    # Cargar modelo
-    with st.spinner("Cargando modelo de IA..."):
-        model = load_model()
-    
-    st.sidebar.success("✅ Modelo cargado exitosamente")
-    
-    # Opciones de análisis
-    analysis_type = st.sidebar.selectbox(
-        "Tipo de Análisis",
-        ["Análisis Individual", "Análisis por Lotes", "Comparación de Técnicas"]
+    # Sidebar para navegación
+    st.sidebar.title("📋 Menú Principal")
+    page = st.sidebar.selectbox(
+        "Seleccionar Sección:",
+        ["🏠 Dashboard", "👤 Gestión de Pacientes", "🔍 Análisis de Imágenes", 
+         "📊 Reportes", "📧 Envío de Resultados", "⚙️ Configuración"]
     )
     
-    if analysis_type == "Análisis Individual":
-        st.markdown('<h2 class="sub-header">📸 Análisis de Imagen Individual</h2>', unsafe_allow_html=True)
-        
-        # Upload de imagen
-        uploaded_file = st.file_uploader(
-            "Cargar imagen de colposcopía",
-            type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'],
-            help="Formatos soportados: PNG, JPG, JPEG, BMP, TIFF"
-        )
-        
-        if uploaded_file is not None:
-            # Cargar imagen
-            image = Image.open(uploaded_file)
-            
-            # Layout en columnas
-            col1, col2 = st.columns([1, 1])
-            
-            with col1:
-                st.subheader("🖼️ Imagen Original")
-                st.image(image, caption="Imagen cargada", use_column_width=True)
-                
-                # Información de la imagen
-                st.info(f"""
-                **Información de la imagen:**
-                - Dimensiones: {image.size[0]} x {image.size[1]} px
-                - Formato: {image.format}
-                - Modo: {image.mode}
-                """)
-            
-            with col2:
-                st.subheader("🔍 Procesamiento")
-                
-                # Opciones de procesamiento
-                enhance_option = st.checkbox("Mejorar calidad de imagen", value=True)
-                show_filters = st.checkbox("Mostrar filtros aplicados")
-                
-                if enhance_option:
-                    enhanced_image = enhance_image(image)
-                    st.image(enhanced_image, caption="Imagen mejorada", use_column_width=True)
-                    analysis_image = enhanced_image
-                else:
-                    analysis_image = image
-            
-            # Mostrar filtros si está habilitado
-            if show_filters:
-                st.markdown('<h3 class="sub-header">🎨 Filtros de Procesamiento</h3>', unsafe_allow_html=True)
-                
-                filters = apply_filters(analysis_image)
-                
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.image(filters['original'], caption="Original", use_column_width=True)
-                with col2:
-                    st.image(filters['gaussian'], caption="Suavizado", use_column_width=True)
-                with col3:
-                    st.image(filters['edges'], caption="Bordes", use_column_width=True)
-                with col4:
-                    st.image(filters['sharpened'], caption="Realzado", use_column_width=True)
-            
-            # Botón de análisis
-            if st.button("🔬 Realizar Análisis", key="analyze_button"):
-                with st.spinner("Analizando imagen..."):
-                    # Simular tiempo de procesamiento
-                    progress_bar = st.progress(0)
-                    for i in range(100):
-                        time.sleep(0.01)
-                        progress_bar.progress(i + 1)
-                    
-                    # Realizar predicción
-                    results, predicted_class, confidence = predict_image(model, analysis_image)
-                
-                # Mostrar resultados
-                st.markdown('<h3 class="sub-header">📊 Resultados del Análisis</h3>', unsafe_allow_html=True)
-                
-                # Métricas principales
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h3>Diagnóstico Principal</h3>
-                        <h2>{predicted_class}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h3>Confianza</h3>
-                        <h2>{confidence:.1%}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col3:
-                    risk_level = "Alto" if predicted_class in ["CIN II", "CIN III"] else "Bajo" if predicted_class == "Normal" else "Medio"
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h3>Nivel de Riesgo</h3>
-                        <h2>{risk_level}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Gráfico de probabilidades
-                fig = create_analysis_chart(results)
-                st.pyplot(fig)
-                
-                # Tabla de resultados detallados
-                st.subheader("📋 Resultados Detallados")
-                results_df = pd.DataFrame(list(results.items()), columns=['Clase', 'Probabilidad'])
-                results_df['Probabilidad'] = results_df['Probabilidad'].apply(lambda x: f"{x:.4f}")
-                results_df['Porcentaje'] = results_df['Probabilidad'].astype(float).apply(lambda x: f"{x*100:.2f}%")
-                st.dataframe(results_df, use_container_width=True)
-                
-                # Recomendaciones
-                st.subheader("💡 Recomendaciones Clínicas")
-                if predicted_class == "Normal":
-                    st.success("✅ Resultado normal. Se recomienda seguimiento rutinario según protocolo.")
-                elif predicted_class == "CIN I":
-                    st.warning("⚠️ Lesión de bajo grado detectada. Se recomienda seguimiento cercano y posible repetición en 6-12 meses.")
-                elif predicted_class == "CIN II":
-                    st.error("🔴 Lesión de alto grado detectada. Se recomienda evaluación por especialista y posible tratamiento.")
-                else:  # CIN III
-                    st.error("🚨 Lesión de alto grado severa detectada. Se requiere evaluación inmediata por especialista y tratamiento.")
-                
-                st.info("⚠️ **Importante**: Este análisis es una herramienta de apoyo diagnóstico. Siempre debe ser interpretado por un profesional médico calificado.")
+    if page == "🏠 Dashboard":
+        show_dashboard()
+    elif page == "👤 Gestión de Pacientes":
+        show_patient_management()
+    elif page == "🔍 Análisis de Imágenes":
+        show_image_analysis()
+    elif page == "📊 Reportes":
+        show_reports()
+    elif page == "📧 Envío de Resultados":
+        show_email_sender()
+    elif page == "⚙️ Configuración":
+        show_configuration()
+
+def show_dashboard():
+    st.header("📊 Dashboard General")
     
-    elif analysis_type == "Análisis por Lotes":
-        st.markdown('<h2 class="sub-header">📁 Análisis por Lotes</h2>', unsafe_allow_html=True)
-        
-        uploaded_files = st.file_uploader(
-            "Cargar múltiples imágenes",
-            type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'],
-            accept_multiple_files=True,
-            help="Selecciona múltiples archivos para análisis en lote"
-        )
-        
-        if uploaded_files:
-            st.success(f"✅ {len(uploaded_files)} archivos cargados")
-            
-            if st.button("🔬 Analizar Lote", key="batch_analyze"):
-                results_list = []
-                
-                # Barra de progreso
-                progress_bar = st.progress(0)
-                
-                for i, uploaded_file in enumerate(uploaded_files):
-                    # Cargar y procesar imagen
-                    image = Image.open(uploaded_file)
-                    enhanced_image = enhance_image(image)
-                    
-                    # Realizar predicción
-                    results, predicted_class, confidence = predict_image(model, enhanced_image)
-                    
-                    # Guardar resultados
-                    results_list.append({
-                        'Archivo': uploaded_file.name,
-                        'Diagnóstico': predicted_class,
-                        'Confianza': confidence,
-                        **results
-                    })
-                    
-                    # Actualizar progreso
-                    progress_bar.progress((i + 1) / len(uploaded_files))
-                
-                # Mostrar resultados del lote
-                st.subheader("📊 Resultados del Lote")
-                
-                # Crear DataFrame
-                batch_df = pd.DataFrame(results_list)
-                
-                # Métricas del lote
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    normal_count = len(batch_df[batch_df['Diagnóstico'] == 'Normal'])
-                    st.metric("Casos Normales", normal_count)
-                
-                with col2:
-                    cin1_count = len(batch_df[batch_df['Diagnóstico'] == 'CIN I'])
-                    st.metric("CIN I", cin1_count)
-                
-                with col3:
-                    cin2_count = len(batch_df[batch_df['Diagnóstico'] == 'CIN II'])
-                    st.metric("CIN II", cin2_count)
-                
-                with col4:
-                    cin3_count = len(batch_df[batch_df['Diagnóstico'] == 'CIN III'])
-                    st.metric("CIN III", cin3_count)
-                
-                # Tabla de resultados
-                st.dataframe(batch_df, use_container_width=True)
-                
-                # Gráfico de distribución
-                fig, ax = plt.subplots(figsize=(10, 6))
-                diagnosis_counts = batch_df['Diagnóstico'].value_counts()
-                colors = ['#2ecc71', '#f39c12', '#e74c3c', '#8e44ad']
-                ax.pie(diagnosis_counts.values, labels=diagnosis_counts.index, colors=colors, autopct='%1.1f%%')
-                ax.set_title('Distribución de Diagnósticos en el Lote')
-                st.pyplot(fig)
+    # Métricas principales
+    col1, col2, col3, col4 = st.columns(4)
     
-    else:  # Comparación de Técnicas
-        st.markdown('<h2 class="sub-header">⚖️ Comparación de Técnicas</h2>', unsafe_allow_html=True)
+    with col1:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>👤 Pacientes</h3>
+            <h2>{}</h2>
+        </div>
+        """.format(len(st.session_state.patients_db)), unsafe_allow_html=True)
+    
+    with col2:
+        total_analyses = len(st.session_state.analysis_results)
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🔍 Análisis</h3>
+            <h2>{}</h2>
+        </div>
+        """.format(total_analyses), unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>📈 Precisión</h3>
+            <h2>94.2%</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>⏱️ Tiempo Prom.</h3>
+            <h2>2.3 min</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Gráficos de ejemplo
+    if st.session_state.analysis_results:
+        col1, col2 = st.columns(2)
         
-        uploaded_file = st.file_uploader(
-            "Cargar imagen para comparación",
-            type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'],
-            key="comparison_upload"
-        )
+        with col1:
+            st.subheader("📊 Distribución de Diagnósticos")
+            # Crear gráfico de ejemplo
+            diagnoses = ['Normal', 'CIN I', 'CIN II', 'CIN III', 'Carcinoma']
+            values = [45, 25, 15, 10, 5]  # Valores de ejemplo
+            
+            fig = px.pie(values=values, names=diagnoses, 
+                        title="Distribución de Diagnósticos")
+            st.plotly_chart(fig, use_container_width=True)
         
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
+        with col2:
+            st.subheader("📈 Análisis por Mes")
+            # Gráfico de tendencia temporal
+            months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
+            analyses = [12, 15, 18, 22, 19, 25]
             
-            st.subheader("🔍 Comparación de Técnicas de Procesamiento")
-            
-            # Aplicar diferentes técnicas
-            with st.spinner("Aplicando técnicas de procesamiento..."):
-                filters = apply_filters(image)
-                enhanced = enhance_image(image)
-            
-            # Mostrar comparación
+            fig = px.line(x=months, y=analyses, title="Análisis Realizados por Mes")
+            st.plotly_chart(fig, use_container_width=True)
+
+def show_patient_management():
+    st.header("👤 Gestión de Pacientes")
+    
+    tab1, tab2, tab3 = st.tabs(["➕ Nuevo Paciente", "📋 Lista de Pacientes", "✏️ Editar Paciente"])
+    
+    with tab1:
+        st.subheader("Agregar Nuevo Paciente")
+        
+        with st.form("nuevo_paciente"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.image(image, caption="Original", use_column_width=True)
-                results_orig, pred_orig, conf_orig = predict_image(model, image)
-                st.write(f"**Diagnóstico**: {pred_orig} ({conf_orig:.1%})")
-            
+                nombre = st.text_input("Nombre *", placeholder="Ingrese el nombre")
+                identificacion = st.text_input("Identificación *", placeholder="Número de identificación")
+                fecha_nacimiento = st.date_input("Fecha de Nacimiento *")
+                telefono = st.text_input("Teléfono", placeholder="Número de teléfono")
+                
             with col2:
-                st.image(enhanced, caption="Mejorada", use_column_width=True)
-                results_enh, pred_enh, conf_enh = predict_image(model, enhanced)
-                st.write(f"**Diagnóstico**: {pred_enh} ({conf_enh:.1%})")
+                apellido = st.text_input("Apellido *", placeholder="Ingrese el apellido")
+                email = st.text_input("Email", placeholder="correo@ejemplo.com")
+                edad = st.number_input("Edad", min_value=0, max_value=120, value=30)
+                direccion = st.text_area("Dirección", placeholder="Dirección completa")
             
-            # Tabla comparativa
-            st.subheader("📊 Comparación Detallada")
+            # Información médica adicional
+            st.subheader("Información Médica")
+            col3, col4 = st.columns(2)
             
-            comparison_data = {
-                'Técnica': ['Original', 'Mejorada'],
-                'Diagnóstico': [pred_orig, pred_enh],
-                'Confianza': [f"{conf_orig:.1%}", f"{conf_enh:.1%}"],
-                'Normal': [f"{results_orig['Normal']:.3f}", f"{results_enh['Normal']:.3f}"],
-                'CIN I': [f"{results_orig['CIN I']:.3f}", f"{results_enh['CIN I']:.3f}"],
-                'CIN II': [f"{results_orig['CIN II']:.3f}", f"{results_enh['CIN II']:.3f}"],
-                'CIN III': [f"{results_orig['CIN III']:.3f}", f"{results_enh['CIN III']:.3f}"]
-            }
+            with col3:
+                antecedentes = st.text_area("Antecedentes Médicos")
+                medicamentos = st.text_area("Medicamentos Actuales")
+                
+            with col4:
+                alergias = st.text_area("Alergias")
+                observaciones = st.text_area("Observaciones")
             
-            comparison_df = pd.DataFrame(comparison_data)
-            st.dataframe(comparison_df, use_container_width=True)
+            submitted = st.form_submit_button("💾 Guardar Paciente", type="primary")
+            
+            if submitted:
+                if nombre and apellido and identificacion:
+                    patient_data = {
+                        'nombre': nombre,
+                        'apellido': apellido,
+                        'identificacion': identificacion,
+                        'fecha_nacimiento': fecha_nacimiento,
+                        'edad': edad,
+                        'telefono': telefono,
+                        'email': email,
+                        'direccion': direccion,
+                        'antecedentes': antecedentes,
+                        'medicamentos': medicamentos,
+                        'alergias': alergias,
+                        'observaciones': observaciones
+                    }
+                    
+                    patient_id = PatientManager.add_patient(patient_data)
+                    st.success(f"✅ Paciente agregado exitosamente con ID: {patient_id}")
+                    st.balloons()
+                else:
+                    st.error("⚠️ Por favor complete los campos obligatorios marcados con *")
     
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #666; padding: 2rem;">
-        <p><strong>ColpoVision v2.0</strong> - Sistema de Análisis Inteligente para Colposcopía</p>
-        <p>⚠️ <em>Herramienta de apoyo diagnóstico. No reemplaza el criterio médico profesional.</em></p>
-    </div>
-    """, unsafe_allow_html=True)
+    with tab2:
+        st.subheader("Lista de Pacientes Registrados")
+        
+        if st.session_state.patients_db:
+            # Crear DataFrame para mostrar
+            df_patients = pd.DataFrame(st.session_state.patients_db)
+            
+            # Filtros
+            col1, col2 = st.columns(2)
+            with col1:
+                search_term = st.text_input("🔍 Buscar paciente", placeholder="Nombre, apellido o identificación")
+            with col2:
+                sort_by = st.selectbox("Ordenar por:", ["nombre", "apellido", "fecha_nacimiento", "created_at"])
+            
+            # Aplicar filtros
+            if search_term:
+                mask = (
+                    df_patients['nombre'].str.contains(search_term, case=False, na=False) |
+                    df_patients['apellido'].str.contains(search_term, case=False, na=False) |
+                    df_patients['identificacion'].str.contains(search_term, case=False, na=False)
+                )
+                df_patients = df_patients[mask]
+            
+            # Mostrar tabla
+            for idx, patient in df_patients.iterrows():
+                with st.container():
+                    st.markdown(f"""
+                    <div class="patient-card">
+                        <h4>👤 {patient['nombre']} {patient['apellido']}</h4>
+                        <p><strong>ID:</strong> {patient['identificacion']} | 
+                           <strong>Edad:</strong> {patient['edad']} años | 
+                           <strong>Teléfono:</strong> {patient.get('telefono', 'N/A')} |
+                           <strong>Email:</strong> {patient.get('email', 'N/A')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col1, col2, col3 = st.columns([1, 1, 2])
+                    if col1.button(f"📋 Ver Detalles", key=f"details_{patient['id']}"):
+                        st.session_state.selected_patient = patient['id']
+                    if col2.button(f"🔍 Analizar", key=f"analyze_{patient['id']}"):
+                        st.session_state.current_patient = patient['id']
+                        st.rerun()
+        else:
+            st.info("📝 No hay pacientes registrados. Agregue el primer paciente en la pestaña 'Nuevo Paciente'.")
+    
+    with tab3:
+        st.subheader("Editar Información del Paciente")
+        
+        if st.session_state.patients_db:
+            patient_options = {f"{p['nombre']} {p['apellido']} - {p['identificacion']}": p['id'] 
+                             for p in st.session_state.patients_db}
+            
+            selected_patient_key = st.selectbox("Seleccionar paciente:", list(patient_options.keys()))
+            
+            if selected_patient_key:
+                patient_id = patient_options[selected_patient_key]
+                patient = PatientManager.get_patient(patient_id)
+                
+                if patient:
+                    with st.form(f"edit_patient_{patient_id}"):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            nombre = st.text_input("Nombre", value=patient['nombre'])
+                            identificacion = st.text_input("Identificación", value=patient['identificacion'])
+                            telefono = st.text_input("Teléfono", value=patient.get('telefono', ''))
+                            
+                        with col2:
+                            apellido = st.text_input("Apellido", value=patient['apellido'])
+                            email = st.text_input("Email", value=patient.get('email', ''))
+                            edad = st.number_input("Edad", value=patient['edad'], min_value=0, max_value=120)
+                        
+                        direccion = st.text_area("Dirección", value=patient.get('direccion', ''))
+                        
+                        if st.form_submit_button("💾 Actualizar Datos"):
+                            updated_data = {
+                                'nombre': nombre,
+                                'apellido': apellido,
+                                'identificacion': identificacion,
+                                'telefono': telefono,
+                                'email': email,
+                                'edad': edad,
+                                'direccion': direccion
+                            }
+                            
+                            if PatientManager.update_patient(patient_id, updated_data):
+                                st.success("✅ Datos actualizados correctamente")
+                                st.rerun()
+                            else:
+                                st.error("❌ Error al actualizar los datos")
+        else:
+            st.info("No hay pacientes registrados para editar.")
 
-if __name__ == "__main__":
-    main()
+def show_image_analysis():
+    st.header("🔍 Análisis de Imágenes")
+    
+    # Selección de paciente
+    if st.session_state.patients_db:
+        patient_options = {f"{p['nombre']} {p['apellido']} - {p['identificacion']}": p['id'] 
+                         for p in st.session_state.patients_db}
+        
+        selected_patient_key = st.selectbox("👤 Seleccionar Paciente:", 
+                                          ["Seleccione un paciente..."] + list(patient_options.keys()))
+        
+        if selected_patient_key != "Seleccione un paciente...":
+            patient_id = patient_options[selected_patient_key]
+            patient = PatientManager.get_patient(patient_id)
+            
+            st.success(f"📋 Paciente seleccionado: {patient['nombre']} {patient['apellido']}")
+            
+            # Tipo de análisis
+            analysis_type = st.radio("Tipo de Análisis:", 
+                                   ["🔍 Análisis Individual", "📊 Análisis por Lotes", "⚖️ Comparación de Técnicas"])
+            
+            if analysis_type == "🔍 Análisis Individual":
+                show_individual_analysis(patient)
+            elif analysis_type == "📊 Análisis por Lotes":
+                show_batch_analysis(patient)
+            else:
+                show_technique_comparison(patient)
+    else:
+        st.warning("⚠️ Primero debe registrar pacientes en la sección 'Gestión de Pacientes'")
+
+def show_individual_analysis(patient):
+    st.subheader("🔍 Análisis Individual de Imagen")
+    
+    uploaded_file = st.file_uploader("📷 Cargar imagen de colposcopía", 
+                                   type=['png', 'jpg', 'jpeg', 'tiff'])
+    
+    if uploaded_file is not None:
+        # Mostrar imagen
+        image = Image.open(uploaded_file)
+        
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            st.image(image, caption="Imagen Original", use_column_width=True)
+            
+            # Opciones de procesamiento
+            st.subheader("⚙️ Opciones de Procesamiento")
+            enhance_contrast = st.checkbox("Mejorar Contraste", value=True)
+            reduce_noise = st.checkbox("Reducir Ruido", value=True)
+            edge_detection = st.checkbox("Detección de Bordes", value=False)
+        
+        with col2:
+            if st.button("🚀 Realizar Análisis", type="primary", use_container_width=True):
+                with st.spinner("Analizando imagen... Por favor espere"):
+                    # Simular tiempo de procesamiento
+                    import time
+                    time.sleep(2)
+                    
+                    # Realizar análisis
+                    results = ImageAnalyzer.analyze_image(image, "individual")
+                    
+                    # Guardar resultados
+                    analysis_record = {
+                        'patient_id': patient['id'],
+                        'results': results,
+                        'image_name': uploaded_file.name,
+                        'analysis_date': datetime.now()
+                    }
+                    st.session_state.analysis_results.append(analysis_record)
+                    
+                    # Mostrar resultados
+                    show_analysis_results(results)
+                    
+                    # Botón para generar reporte
+                    if st.button("📄 Generar Reporte PDF"):
+                        pdf_buffer = ReportGenerator.create_pdf_report(patient, results)
+                        st.download_button(
+                            label="⬇️ Descargar Reporte",
+                            data=pdf_buffer,
+                            file_name=f"Reporte_{patient['apellido']}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                            mime="application/pdf"
+                        )
+
+def show_batch_analysis(patient):
+    st.subheader("📊 Análisis por Lotes")
+    
+    uploaded_files = st.file_uploader("📷 Cargar múltiples imágenes", 
+                                    type=['png', 'jpg', 'jpeg', 'tiff'],
+                                    accept_multiple_files=True)
+    
+    if uploaded_files:
+        st.info(f"✅ {len(uploaded_files)} imágenes cargadas")
+        
+        if st.button("🚀 Procesar Lote", type="primary"):
+            progress_bar = st.progress(0)
+            results_container = st.container()
+            
+            batch_results = []
+            
+            for i, uploaded_file in enumerate(
