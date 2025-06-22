@@ -652,3 +652,4 @@ def show_batch_analysis(patient):
             batch_results = []
             
             for i, uploaded_file in enumerate(uploaded_files):
+    print(uploaded_file)  # ¡Indentado con 4 espacios!
