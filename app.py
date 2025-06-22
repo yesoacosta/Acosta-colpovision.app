@@ -24,10 +24,11 @@ import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Configuración de la página
+# ConfiguraciÃ³n de la pÃ¡gina
 st.set_page_config(
-    page_title="ColpoVision - Análisis de Colposcopía",
-    page_icon="🔬",
+st.title("ðŸ©º ColpoVision - AnÃ¡lisis de ColposcopÃ­a")
+    page_title="ColpoVision - AnÃ¡lisis de ColposcopÃ­a",
+    page_icon="ðŸ”¬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -67,7 +68,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Inicialización del estado de la sesión
+# InicializaciÃ³n del estado de la sesiÃ³n
 if 'patients_db' not in st.session_state:
     st.session_state.patients_db = []
 if 'current_patient' not in st.session_state:
@@ -109,8 +110,8 @@ class PatientManager:
 class ImageAnalyzer:
     @staticmethod
     def analyze_image(image, analysis_type="individual"):
-        """Simular análisis de imagen con IA"""
-        # Simulación de análisis - aquí iría tu modelo de IA real
+        """Simular anÃ¡lisis de imagen con IA"""
+        # SimulaciÃ³n de anÃ¡lisis - aquÃ­ irÃ­a tu modelo de IA real
         np.random.seed(42)  # Para resultados consistentes
         
         results = {
@@ -139,25 +140,25 @@ class ImageAnalyzer:
         if max_class == 'Normal':
             results['recommendations'] = [
                 "Continuar con controles de rutina",
-                "Repetir colposcopía en 12 meses"
+                "Repetir colposcopÃ­a en 12 meses"
             ]
         elif max_class in ['CIN I']:
             results['recommendations'] = [
                 "Seguimiento estrecho cada 6 meses",
                 "Considerar biopsia si persiste",
-                "Evaluación de factores de riesgo"
+                "EvaluaciÃ³n de factores de riesgo"
             ]
         elif max_class in ['CIN II', 'CIN III']:
             results['recommendations'] = [
                 "Biopsia confirmativa recomendada",
-                "Tratamiento según protocolo",
-                "Seguimiento oncológico"
+                "Tratamiento segÃºn protocolo",
+                "Seguimiento oncolÃ³gico"
             ]
         else:
             results['recommendations'] = [
-                "Evaluación oncológica urgente",
+                "EvaluaciÃ³n oncolÃ³gica urgente",
                 "Biopsia confirmatoria inmediata",
-                "Estadificación completa"
+                "EstadificaciÃ³n completa"
             ]
         
         return results
@@ -171,7 +172,7 @@ class ReportGenerator:
         styles = getSampleStyleSheet()
         story = []
         
-        # Estilo personalizado para el título
+        # Estilo personalizado para el tÃ­tulo
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
@@ -181,20 +182,20 @@ class ReportGenerator:
             textColor=colors.darkblue
         )
         
-        # Título del reporte
-        story.append(Paragraph("REPORTE DE ANÁLISIS COLPOSCÓPICO", title_style))
+        # TÃ­tulo del reporte
+        story.append(Paragraph("REPORTE DE ANÃLISIS COLPOSCÃ“PICO", title_style))
         story.append(Spacer(1, 20))
         
-        # Información del paciente
+        # InformaciÃ³n del paciente
         patient_info = [
             ['Datos del Paciente', ''],
             ['Nombre:', f"{patient_data['nombre']} {patient_data['apellido']}"],
-            ['Identificación:', patient_data['identificacion']],
+            ['IdentificaciÃ³n:', patient_data['identificacion']],
             ['Fecha de Nacimiento:', str(patient_data['fecha_nacimiento'])],
             ['Edad:', str(patient_data['edad'])],
-            ['Teléfono:', patient_data.get('telefono', 'N/A')],
+            ['TelÃ©fono:', patient_data.get('telefono', 'N/A')],
             ['Email:', patient_data.get('email', 'N/A')],
-            ['Fecha del Análisis:', analysis_results['timestamp'].strftime('%d/%m/%Y %H:%M')]
+            ['Fecha del AnÃ¡lisis:', analysis_results['timestamp'].strftime('%d/%m/%Y %H:%M')]
         ]
         
         patient_table = Table(patient_info, colWidths=[2*inch, 4*inch])
@@ -212,11 +213,11 @@ class ReportGenerator:
         story.append(patient_table)
         story.append(Spacer(1, 20))
         
-        # Resultados del análisis
-        story.append(Paragraph("RESULTADOS DEL ANÁLISIS", styles['Heading2']))
+        # Resultados del anÃ¡lisis
+        story.append(Paragraph("RESULTADOS DEL ANÃLISIS", styles['Heading2']))
         story.append(Spacer(1, 10))
         
-        results_data = [['Diagnóstico', 'Probabilidad (%)']]
+        results_data = [['DiagnÃ³stico', 'Probabilidad (%)']]
         for diag, prob in analysis_results['predictions'].items():
             results_data.append([diag, f"{prob*100:.1f}%"])
         
@@ -236,7 +237,7 @@ class ReportGenerator:
         story.append(Spacer(1, 20))
         
         # Recomendaciones
-        story.append(Paragraph("RECOMENDACIONES CLÍNICAS", styles['Heading2']))
+        story.append(Paragraph("RECOMENDACIONES CLÃNICAS", styles['Heading2']))
         story.append(Spacer(1, 10))
         
         for i, rec in enumerate(analysis_results['recommendations'], 1):
@@ -245,14 +246,14 @@ class ReportGenerator:
         
         story.append(Spacer(1, 20))
         
-        # Información adicional
+        # InformaciÃ³n adicional
         info_adicional = f"""
-        <b>Confianza del análisis:</b> {analysis_results['confidence']*100:.1f}%<br/>
+        <b>Confianza del anÃ¡lisis:</b> {analysis_results['confidence']*100:.1f}%<br/>
         <b>Calidad de imagen:</b> {analysis_results['image_quality']*100:.1f}%<br/>
-        <b>Tipo de análisis:</b> {analysis_results['analysis_type'].title()}<br/>
+        <b>Tipo de anÃ¡lisis:</b> {analysis_results['analysis_type'].title()}<br/>
         <br/>
-        <i>Este reporte es generado automáticamente por el sistema ColpoVision y debe ser 
-        interpretado por un profesional médico calificado. No sustituye el juicio clínico.</i>
+        <i>Este reporte es generado automÃ¡ticamente por el sistema ColpoVision y debe ser 
+        interpretado por un profesional mÃ©dico calificado. No sustituye el juicio clÃ­nico.</i>
         """
         
         story.append(Paragraph(info_adicional, styles['Normal']))
@@ -269,14 +270,14 @@ class EmailSender:
             msg = MIMEMultipart()
             msg['From'] = smtp_config['email']
             msg['To'] = recipient_email
-            msg['Subject'] = f"Reporte de Análisis Colposcópico - {patient_name}"
+            msg['Subject'] = f"Reporte de AnÃ¡lisis ColposcÃ³pico - {patient_name}"
             
             body = f"""
             Estimado/a paciente,
             
-            Adjunto encontrará el reporte de su análisis colposcópico realizado el {datetime.now().strftime('%d/%m/%Y')}.
+            Adjunto encontrarÃ¡ el reporte de su anÃ¡lisis colposcÃ³pico realizado el {datetime.now().strftime('%d/%m/%Y')}.
             
-            Por favor, consulte con su médico tratante para la interpretación de los resultados.
+            Por favor, consulte con su mÃ©dico tratante para la interpretaciÃ³n de los resultados.
             
             Saludos cordiales,
             Sistema ColpoVision
@@ -310,42 +311,42 @@ def main():
     # Header principal
     st.markdown("""
     <div class="main-header">
-        <h1>🔬 ColpoVision</h1>
-        <p>Sistema de Análisis de Colposcopía con Inteligencia Artificial</p>
+        <h1>ðŸ”¬ ColpoVision</h1>
+        <p>Sistema de AnÃ¡lisis de ColposcopÃ­a con Inteligencia Artificial</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar para navegación
-    st.sidebar.title("📋 Menú Principal")
+    # Sidebar para navegaciÃ³n
+    st.sidebar.title("ðŸ“‹ MenÃº Principal")
     page = st.sidebar.selectbox(
-        "Seleccionar Sección:",
-        ["🏠 Dashboard", "👤 Gestión de Pacientes", "🔍 Análisis de Imágenes", 
-         "📊 Reportes", "📧 Envío de Resultados", "⚙️ Configuración"]
+        "Seleccionar SecciÃ³n:",
+        ["ðŸ  Dashboard", "ðŸ‘¤ GestiÃ³n de Pacientes", "ðŸ” AnÃ¡lisis de ImÃ¡genes", 
+         "ðŸ“Š Reportes", "ðŸ“§ EnvÃ­o de Resultados", "âš™ï¸ ConfiguraciÃ³n"]
     )
     
-    if page == "🏠 Dashboard":
+    if page == "ðŸ  Dashboard":
         show_dashboard()
-    elif page == "👤 Gestión de Pacientes":
+    elif page == "ðŸ‘¤ GestiÃ³n de Pacientes":
         show_patient_management()
-    elif page == "🔍 Análisis de Imágenes":
+    elif page == "ðŸ” AnÃ¡lisis de ImÃ¡genes":
         show_image_analysis()
-    elif page == "📊 Reportes":
+    elif page == "ðŸ“Š Reportes":
         show_reports()
-    elif page == "📧 Envío de Resultados":
+    elif page == "ðŸ“§ EnvÃ­o de Resultados":
         show_email_sender()
-    elif page == "⚙️ Configuración":
+    elif page == "âš™ï¸ ConfiguraciÃ³n":
         show_configuration()
 
 def show_dashboard():
-    st.header("📊 Dashboard General")
+    st.header("ðŸ“Š Dashboard General")
     
-    # Métricas principales
+    # MÃ©tricas principales
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown("""
         <div class="metric-card">
-            <h3>👤 Pacientes</h3>
+            <h3>ðŸ‘¤ Pacientes</h3>
             <h2>{}</h2>
         </div>
         """.format(len(st.session_state.patients_db)), unsafe_allow_html=True)
@@ -354,7 +355,7 @@ def show_dashboard():
         total_analyses = len(st.session_state.analysis_results)
         st.markdown("""
         <div class="metric-card">
-            <h3>🔍 Análisis</h3>
+            <h3>ðŸ” AnÃ¡lisis</h3>
             <h2>{}</h2>
         </div>
         """.format(total_analyses), unsafe_allow_html=True)
@@ -362,7 +363,7 @@ def show_dashboard():
     with col3:
         st.markdown("""
         <div class="metric-card">
-            <h3>📈 Precisión</h3>
+            <h3>ðŸ“ˆ PrecisiÃ³n</h3>
             <h2>94.2%</h2>
         </div>
         """, unsafe_allow_html=True)
@@ -370,40 +371,40 @@ def show_dashboard():
     with col4:
         st.markdown("""
         <div class="metric-card">
-            <h3>⏱️ Tiempo Prom.</h3>
+            <h3>â±ï¸ Tiempo Prom.</h3>
             <h2>2.3 min</h2>
         </div>
         """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Gráficos de ejemplo
+    # GrÃ¡ficos de ejemplo
     if st.session_state.analysis_results:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("📊 Distribución de Diagnósticos")
-            # Crear gráfico de ejemplo
+            st.subheader("ðŸ“Š DistribuciÃ³n de DiagnÃ³sticos")
+            # Crear grÃ¡fico de ejemplo
             diagnoses = ['Normal', 'CIN I', 'CIN II', 'CIN III', 'Carcinoma']
             values = [45, 25, 15, 10, 5]  # Valores de ejemplo
             
             fig = px.pie(values=values, names=diagnoses, 
-                        title="Distribución de Diagnósticos")
+                        title="DistribuciÃ³n de DiagnÃ³sticos")
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            st.subheader("📈 Análisis por Mes")
-            # Gráfico de tendencia temporal
+            st.subheader("ðŸ“ˆ AnÃ¡lisis por Mes")
+            # GrÃ¡fico de tendencia temporal
             months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
             analyses = [12, 15, 18, 22, 19, 25]
             
-            fig = px.line(x=months, y=analyses, title="Análisis Realizados por Mes")
+            fig = px.line(x=months, y=analyses, title="AnÃ¡lisis Realizados por Mes")
             st.plotly_chart(fig, use_container_width=True)
 
 def show_patient_management():
-    st.header("👤 Gestión de Pacientes")
+    st.header("ðŸ‘¤ GestiÃ³n de Pacientes")
     
-    tab1, tab2, tab3 = st.tabs(["➕ Nuevo Paciente", "📋 Lista de Pacientes", "✏️ Editar Paciente"])
+    tab1, tab2, tab3 = st.tabs(["âž• Nuevo Paciente", "ðŸ“‹ Lista de Pacientes", "âœï¸ Editar Paciente"])
     
     with tab1:
         st.subheader("Agregar Nuevo Paciente")
@@ -413,29 +414,29 @@ def show_patient_management():
             
             with col1:
                 nombre = st.text_input("Nombre *", placeholder="Ingrese el nombre")
-                identificacion = st.text_input("Identificación *", placeholder="Número de identificación")
+                identificacion = st.text_input("IdentificaciÃ³n *", placeholder="NÃºmero de identificaciÃ³n")
                 fecha_nacimiento = st.date_input("Fecha de Nacimiento *")
-                telefono = st.text_input("Teléfono", placeholder="Número de teléfono")
+                telefono = st.text_input("TelÃ©fono", placeholder="NÃºmero de telÃ©fono")
                 
             with col2:
                 apellido = st.text_input("Apellido *", placeholder="Ingrese el apellido")
                 email = st.text_input("Email", placeholder="correo@ejemplo.com")
                 edad = st.number_input("Edad", min_value=0, max_value=120, value=30)
-                direccion = st.text_area("Dirección", placeholder="Dirección completa")
+                direccion = st.text_area("DirecciÃ³n", placeholder="DirecciÃ³n completa")
             
-            # Información médica adicional
-            st.subheader("Información Médica")
+            # InformaciÃ³n mÃ©dica adicional
+            st.subheader("InformaciÃ³n MÃ©dica")
             col3, col4 = st.columns(2)
             
             with col3:
-                antecedentes = st.text_area("Antecedentes Médicos")
+                antecedentes = st.text_area("Antecedentes MÃ©dicos")
                 medicamentos = st.text_area("Medicamentos Actuales")
                 
             with col4:
                 alergias = st.text_area("Alergias")
                 observaciones = st.text_area("Observaciones")
             
-            submitted = st.form_submit_button("💾 Guardar Paciente", type="primary")
+            submitted = st.form_submit_button("ðŸ’¾ Guardar Paciente", type="primary")
             
             if submitted:
                 if nombre and apellido and identificacion:
@@ -455,10 +456,10 @@ def show_patient_management():
                     }
                     
                     patient_id = PatientManager.add_patient(patient_data)
-                    st.success(f"✅ Paciente agregado exitosamente con ID: {patient_id}")
+                    st.success(f"âœ… Paciente agregado exitosamente con ID: {patient_id}")
                     st.balloons()
                 else:
-                    st.error("⚠️ Por favor complete los campos obligatorios marcados con *")
+                    st.error("âš ï¸ Por favor complete los campos obligatorios marcados con *")
     
     with tab2:
         st.subheader("Lista de Pacientes Registrados")
@@ -470,7 +471,7 @@ def show_patient_management():
             # Filtros
             col1, col2 = st.columns(2)
             with col1:
-                search_term = st.text_input("🔍 Buscar paciente", placeholder="Nombre, apellido o identificación")
+                search_term = st.text_input("ðŸ” Buscar paciente", placeholder="Nombre, apellido o identificaciÃ³n")
             with col2:
                 sort_by = st.selectbox("Ordenar por:", ["nombre", "apellido", "fecha_nacimiento", "created_at"])
             
@@ -488,25 +489,25 @@ def show_patient_management():
                 with st.container():
                     st.markdown(f"""
                     <div class="patient-card">
-                        <h4>👤 {patient['nombre']} {patient['apellido']}</h4>
+                        <h4>ðŸ‘¤ {patient['nombre']} {patient['apellido']}</h4>
                         <p><strong>ID:</strong> {patient['identificacion']} | 
-                           <strong>Edad:</strong> {patient['edad']} años | 
-                           <strong>Teléfono:</strong> {patient.get('telefono', 'N/A')} |
+                           <strong>Edad:</strong> {patient['edad']} aÃ±os | 
+                           <strong>TelÃ©fono:</strong> {patient.get('telefono', 'N/A')} |
                            <strong>Email:</strong> {patient.get('email', 'N/A')}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
                     col1, col2, col3 = st.columns([1, 1, 2])
-                    if col1.button(f"📋 Ver Detalles", key=f"details_{patient['id']}"):
+                    if col1.button(f"ðŸ“‹ Ver Detalles", key=f"details_{patient['id']}"):
                         st.session_state.selected_patient = patient['id']
-                    if col2.button(f"🔍 Analizar", key=f"analyze_{patient['id']}"):
+                    if col2.button(f"ðŸ” Analizar", key=f"analyze_{patient['id']}"):
                         st.session_state.current_patient = patient['id']
                         st.rerun()
         else:
-            st.info("📝 No hay pacientes registrados. Agregue el primer paciente en la pestaña 'Nuevo Paciente'.")
+            st.info("ðŸ“ No hay pacientes registrados. Agregue el primer paciente en la pestaÃ±a 'Nuevo Paciente'.")
     
     with tab3:
-        st.subheader("Editar Información del Paciente")
+        st.subheader("Editar InformaciÃ³n del Paciente")
         
         if st.session_state.patients_db:
             patient_options = {f"{p['nombre']} {p['apellido']} - {p['identificacion']}": p['id'] 
@@ -524,17 +525,17 @@ def show_patient_management():
                         
                         with col1:
                             nombre = st.text_input("Nombre", value=patient['nombre'])
-                            identificacion = st.text_input("Identificación", value=patient['identificacion'])
-                            telefono = st.text_input("Teléfono", value=patient.get('telefono', ''))
+                            identificacion = st.text_input("IdentificaciÃ³n", value=patient['identificacion'])
+                            telefono = st.text_input("TelÃ©fono", value=patient.get('telefono', ''))
                             
                         with col2:
                             apellido = st.text_input("Apellido", value=patient['apellido'])
                             email = st.text_input("Email", value=patient.get('email', ''))
                             edad = st.number_input("Edad", value=patient['edad'], min_value=0, max_value=120)
                         
-                        direccion = st.text_area("Dirección", value=patient.get('direccion', ''))
+                        direccion = st.text_area("DirecciÃ³n", value=patient.get('direccion', ''))
                         
-                        if st.form_submit_button("💾 Actualizar Datos"):
+                        if st.form_submit_button("ðŸ’¾ Actualizar Datos"):
                             updated_data = {
                                 'nombre': nombre,
                                 'apellido': apellido,
@@ -546,47 +547,47 @@ def show_patient_management():
                             }
                             
                             if PatientManager.update_patient(patient_id, updated_data):
-                                st.success("✅ Datos actualizados correctamente")
+                                st.success("âœ… Datos actualizados correctamente")
                                 st.rerun()
                             else:
-                                st.error("❌ Error al actualizar los datos")
+                                st.error("âŒ Error al actualizar los datos")
         else:
             st.info("No hay pacientes registrados para editar.")
 
 def show_image_analysis():
-    st.header("🔍 Análisis de Imágenes")
+    st.header("ðŸ” AnÃ¡lisis de ImÃ¡genes")
     
-    # Selección de paciente
+    # SelecciÃ³n de paciente
     if st.session_state.patients_db:
         patient_options = {f"{p['nombre']} {p['apellido']} - {p['identificacion']}": p['id'] 
                          for p in st.session_state.patients_db}
         
-        selected_patient_key = st.selectbox("👤 Seleccionar Paciente:", 
+        selected_patient_key = st.selectbox("ðŸ‘¤ Seleccionar Paciente:", 
                                           ["Seleccione un paciente..."] + list(patient_options.keys()))
         
         if selected_patient_key != "Seleccione un paciente...":
             patient_id = patient_options[selected_patient_key]
             patient = PatientManager.get_patient(patient_id)
             
-            st.success(f"📋 Paciente seleccionado: {patient['nombre']} {patient['apellido']}")
+            st.success(f"ðŸ“‹ Paciente seleccionado: {patient['nombre']} {patient['apellido']}")
             
-            # Tipo de análisis
-            analysis_type = st.radio("Tipo de Análisis:", 
-                                   ["🔍 Análisis Individual", "📊 Análisis por Lotes", "⚖️ Comparación de Técnicas"])
+            # Tipo de anÃ¡lisis
+            analysis_type = st.radio("Tipo de AnÃ¡lisis:", 
+                                   ["ðŸ” AnÃ¡lisis Individual", "ðŸ“Š AnÃ¡lisis por Lotes", "âš–ï¸ ComparaciÃ³n de TÃ©cnicas"])
             
-            if analysis_type == "🔍 Análisis Individual":
+            if analysis_type == "ðŸ” AnÃ¡lisis Individual":
                 show_individual_analysis(patient)
-            elif analysis_type == "📊 Análisis por Lotes":
+            elif analysis_type == "ðŸ“Š AnÃ¡lisis por Lotes":
                 show_batch_analysis(patient)
             else:
                 show_technique_comparison(patient)
     else:
-        st.warning("⚠️ Primero debe registrar pacientes en la sección 'Gestión de Pacientes'")
+        st.warning("âš ï¸ Primero debe registrar pacientes en la secciÃ³n 'GestiÃ³n de Pacientes'")
 
 def show_individual_analysis(patient):
-    st.subheader("🔍 Análisis Individual de Imagen")
+    st.subheader("ðŸ” AnÃ¡lisis Individual de Imagen")
     
-    uploaded_file = st.file_uploader("📷 Cargar imagen de colposcopía", 
+    uploaded_file = st.file_uploader("ðŸ“· Cargar imagen de colposcopÃ­a", 
                                    type=['png', 'jpg', 'jpeg', 'tiff'])
     
     if uploaded_file is not None:
@@ -599,19 +600,19 @@ def show_individual_analysis(patient):
             st.image(image, caption="Imagen Original", use_column_width=True)
             
             # Opciones de procesamiento
-            st.subheader("⚙️ Opciones de Procesamiento")
+            st.subheader("âš™ï¸ Opciones de Procesamiento")
             enhance_contrast = st.checkbox("Mejorar Contraste", value=True)
             reduce_noise = st.checkbox("Reducir Ruido", value=True)
-            edge_detection = st.checkbox("Detección de Bordes", value=False)
+            edge_detection = st.checkbox("DetecciÃ³n de Bordes", value=False)
         
         with col2:
-            if st.button("🚀 Realizar Análisis", type="primary", use_container_width=True):
+            if st.button("ðŸš€ Realizar AnÃ¡lisis", type="primary", use_container_width=True):
                 with st.spinner("Analizando imagen... Por favor espere"):
                     # Simular tiempo de procesamiento
                     import time
                     time.sleep(2)
                     
-                    # Realizar análisis
+                    # Realizar anÃ¡lisis
                     results = ImageAnalyzer.analyze_image(image, "individual")
                     
                     # Guardar resultados
@@ -626,27 +627,27 @@ def show_individual_analysis(patient):
                     # Mostrar resultados
                     show_analysis_results(results)
                     
-                    # Botón para generar reporte
-                    if st.button("📄 Generar Reporte PDF"):
+                    # BotÃ³n para generar reporte
+                    if st.button("ðŸ“„ Generar Reporte PDF"):
                         pdf_buffer = ReportGenerator.create_pdf_report(patient, results)
                         st.download_button(
-                            label="⬇️ Descargar Reporte",
+                            label="â¬‡ï¸ Descargar Reporte",
                             data=pdf_buffer,
                             file_name=f"Reporte_{patient['apellido']}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
                             mime="application/pdf"
                         )
 
 def show_batch_analysis(patient):
-    st.subheader("📊 Análisis por Lotes")
+    st.subheader("ðŸ“Š AnÃ¡lisis por Lotes")
     
-    uploaded_files = st.file_uploader("📷 Cargar múltiples imágenes", 
+    uploaded_files = st.file_uploader("ðŸ“· Cargar mÃºltiples imÃ¡genes", 
                                     type=['png', 'jpg', 'jpeg', 'tiff'],
                                     accept_multiple_files=True)
     
     if uploaded_files:
-        st.info(f"✅ {len(uploaded_files)} imágenes cargadas")
+        st.info(f"âœ… {len(uploaded_files)} imÃ¡genes cargadas")
         
-        if st.button("🚀 Procesar Lote", type="primary"):
+        if st.button("ðŸš€ Procesar Lote", type="primary"):
             progress_bar = st.progress(0)
             results_container = st.container()
             
@@ -668,10 +669,10 @@ def show_batch_analysis(patient):
                 
                 # Mostrar progreso
                 with results_container:
-                    st.write(f"✅ Procesada: {uploaded_file.name}")
+                    st.write(f"âœ… Procesada: {uploaded_file.name}")
             
             # Mostrar resumen del lote
-            st.success("🎉 Análisis por lotes completado!")
+            st.success("ðŸŽ‰ AnÃ¡lisis por lotes completado!")
             show_batch_summary(batch_results)
             
             # Guardar resultados del lote
@@ -684,22 +685,22 @@ def show_batch_analysis(patient):
             st.session_state.analysis_results.append(batch_record)
 
 def show_technique_comparison(patient):
-    st.subheader("⚖️ Comparación de Técnicas")
+    st.subheader("âš–ï¸ ComparaciÃ³n de TÃ©cnicas")
     
-    uploaded_file = st.file_uploader("📷 Cargar imagen para comparar técnicas", 
+    uploaded_file = st.file_uploader("ðŸ“· Cargar imagen para comparar tÃ©cnicas", 
                                    type=['png', 'jpg', 'jpeg', 'tiff'])
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Imagen para Comparación", use_column_width=True)
+        st.image(image, caption="Imagen para ComparaciÃ³n", use_column_width=True)
         
-        if st.button("🔬 Comparar Técnicas", type="primary"):
-            with st.spinner("Comparando diferentes técnicas de análisis..."):
+        if st.button("ðŸ”¬ Comparar TÃ©cnicas", type="primary"):
+            with st.spinner("Comparando diferentes tÃ©cnicas de anÃ¡lisis..."):
                 import time
                 time.sleep(3)  # Simular procesamiento
                 
-                # Simular diferentes técnicas
-                techniques = ['CNN Básico', 'ResNet-50', 'EfficientNet', 'Vision Transformer']
+                # Simular diferentes tÃ©cnicas
+                techniques = ['CNN BÃ¡sico', 'ResNet-50', 'EfficientNet', 'Vision Transformer']
                 comparison_results = {}
                 
                 for technique in techniques:
@@ -709,7 +710,7 @@ def show_technique_comparison(patient):
                 show_technique_comparison_results(comparison_results)
 
 def show_analysis_results(results):
-    st.subheader("🎯 Resultados del Análisis")
+    st.subheader("ðŸŽ¯ Resultados del AnÃ¡lisis")
     
     # Resultado principal
     max_class = max(results['predictions'], key=results['predictions'].get)
@@ -718,41 +719,41 @@ def show_analysis_results(results):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("🎯 Diagnóstico Principal", max_class, f"{max_prob*100:.1f}%")
+        st.metric("ðŸŽ¯ DiagnÃ³stico Principal", max_class, f"{max_prob*100:.1f}%")
     
     with col2:
-        st.metric("🔍 Confianza", f"{results['confidence']*100:.1f}%")
+        st.metric("ðŸ” Confianza", f"{results['confidence']*100:.1f}%")
     
     with col3:
-        st.metric("📸 Calidad de Imagen", f"{results['image_quality']*100:.1f}%")
+        st.metric("ðŸ“¸ Calidad de Imagen", f"{results['image_quality']*100:.1f}%")
     
-    # Gráfico de probabilidades
+    # GrÃ¡fico de probabilidades
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📊 Distribución de Probabilidades")
+        st.subheader("ðŸ“Š DistribuciÃ³n de Probabilidades")
         labels = list(results['predictions'].keys())
         values = [v*100 for v in results['predictions'].values()]
         
         fig = px.bar(x=labels, y=values, 
-                    title="Probabilidades por Diagnóstico",
-                    labels={'x': 'Diagnóstico', 'y': 'Probabilidad (%)'})
+                    title="Probabilidades por DiagnÃ³stico",
+                    labels={'x': 'DiagnÃ³stico', 'y': 'Probabilidad (%)'})
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.subheader("🥧 Vista Circular")
+        st.subheader("ðŸ¥§ Vista Circular")
         fig = px.pie(values=values, names=labels, 
-                    title="Distribución de Probabilidades")
+                    title="DistribuciÃ³n de Probabilidades")
         st.plotly_chart(fig, use_container_width=True)
     
     # Recomendaciones
-    st.subheader("💡 Recomendaciones Clínicas")
+    st.subheader("ðŸ’¡ Recomendaciones ClÃ­nicas")
     for i, rec in enumerate(results['recommendations'], 1):
         st.write(f"**{i}.** {rec}")
     
-    # Información técnica
-    with st.expander("🔧 Información Técnica"):
+    # InformaciÃ³n tÃ©cnica
+    with st.expander("ðŸ”§ InformaciÃ³n TÃ©cnica"):
         st.json({
             'Timestamp': results['timestamp'].isoformat(),
             'Analysis Type': results['analysis_type'],
@@ -761,9 +762,9 @@ def show_analysis_results(results):
         })
 
 def show_batch_summary(batch_results):
-    st.subheader("📈 Resumen del Análisis por Lotes")
+    st.subheader("ðŸ“ˆ Resumen del AnÃ¡lisis por Lotes")
     
-    # Estadísticas generales
+    # EstadÃ­sticas generales
     total_images = len(batch_results)
     avg_confidence = np.mean([r['results']['confidence'] for r in batch_results])
     avg_quality = np.mean([r['results']['image_quality'] for r in batch_results])
@@ -771,13 +772,13 @@ def show_batch_summary(batch_results):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("📊 Total Imágenes", total_images)
+        st.metric("ðŸ“Š Total ImÃ¡genes", total_images)
     with col2:
-        st.metric("🎯 Confianza Promedio", f"{avg_confidence*100:.1f}%")
+        st.metric("ðŸŽ¯ Confianza Promedio", f"{avg_confidence*100:.1f}%")
     with col3:
-        st.metric("📸 Calidad Promedio", f"{avg_quality*100:.1f}%")
+        st.metric("ðŸ“¸ Calidad Promedio", f"{avg_quality*100:.1f}%")
     
-    # Distribución de diagnósticos
+    # DistribuciÃ³n de diagnÃ³sticos
     all_predictions = {}
     for result in batch_results:
         for diag, prob in result['results']['predictions'].items():
@@ -785,17 +786,17 @@ def show_batch_summary(batch_results):
                 all_predictions[diag] = []
             all_predictions[diag].append(prob)
     
-    # Gráfico de distribución
+    # GrÃ¡fico de distribuciÃ³n
     diagnoses = list(all_predictions.keys())
     avg_probs = [np.mean(all_predictions[diag])*100 for diag in diagnoses]
     
     fig = px.bar(x=diagnoses, y=avg_probs,
-                title="Distribución Promedio de Diagnósticos en el Lote",
-                labels={'x': 'Diagnóstico', 'y': 'Probabilidad Promedio (%)'})
+                title="DistribuciÃ³n Promedio de DiagnÃ³sticos en el Lote",
+                labels={'x': 'DiagnÃ³stico', 'y': 'Probabilidad Promedio (%)'})
     st.plotly_chart(fig, use_container_width=True)
     
     # Tabla detallada
-    st.subheader("📋 Resultados Detallados")
+    st.subheader("ðŸ“‹ Resultados Detallados")
     results_data = []
     for result in batch_results:
         max_diag = max(result['results']['predictions'], 
@@ -804,7 +805,7 @@ def show_batch_summary(batch_results):
         
         results_data.append({
             'Archivo': result['filename'],
-            'Diagnóstico Principal': max_diag,
+            'DiagnÃ³stico Principal': max_diag,
             'Probabilidad': f"{max_prob*100:.1f}%",
             'Confianza': f"{result['results']['confidence']*100:.1f}%",
             'Calidad': f"{result['results']['image_quality']*100:.1f}%"
@@ -814,7 +815,7 @@ def show_batch_summary(batch_results):
     st.dataframe(df, use_container_width=True)
 
 def show_technique_comparison_results(comparison_results):
-    st.subheader("⚖️ Comparación de Técnicas")
+    st.subheader("âš–ï¸ ComparaciÃ³n de TÃ©cnicas")
     
     # Tabla comparativa
     comparison_data = []
@@ -823,8 +824,8 @@ def show_technique_comparison_results(comparison_results):
         max_prob = results['predictions'][max_diag]
         
         comparison_data.append({
-            'Técnica': technique,
-            'Diagnóstico': max_diag,
+            'TÃ©cnica': technique,
+            'DiagnÃ³stico': max_diag,
             'Probabilidad': f"{max_prob*100:.1f}%",
             'Confianza': f"{results['confidence']*100:.1f}%",
             'Tiempo (s)': np.random.uniform(1.5, 4.2)  # Tiempo simulado
@@ -833,7 +834,7 @@ def show_technique_comparison_results(comparison_results):
     df = pd.DataFrame(comparison_data)
     st.dataframe(df, use_container_width=True)
     
-    # Gráfico comparativo
+    # GrÃ¡fico comparativo
     techniques = list(comparison_results.keys())
     diagnoses = list(comparison_results[techniques[0]]['predictions'].keys())
     
@@ -845,23 +846,23 @@ def show_technique_comparison_results(comparison_results):
         fig.add_trace(go.Scatter(x=diagnoses, y=probs, 
                                mode='lines+markers', name=technique))
     
-    fig.update_layout(title="Comparación de Probabilidades por Técnica",
-                     xaxis_title="Diagnóstico",
+    fig.update_layout(title="ComparaciÃ³n de Probabilidades por TÃ©cnica",
+                     xaxis_title="DiagnÃ³stico",
                      yaxis_title="Probabilidad (%)")
     
     st.plotly_chart(fig, use_container_width=True)
 
 def show_reports():
-    st.header("📊 Gestión de Reportes")
+    st.header("ðŸ“Š GestiÃ³n de Reportes")
     
     if not st.session_state.analysis_results:
-        st.info("📝 No hay análisis realizados. Realice análisis en la sección correspondiente.")
+        st.info("ðŸ“ No hay anÃ¡lisis realizados. Realice anÃ¡lisis en la secciÃ³n correspondiente.")
         return
     
-    tab1, tab2, tab3 = st.tabs(["📋 Historial", "📄 Generar Reporte", "📈 Estadísticas"])
+    tab1, tab2, tab3 = st.tabs(["ðŸ“‹ Historial", "ðŸ“„ Generar Reporte", "ðŸ“ˆ EstadÃ­sticas"])
     
     with tab1:
-        st.subheader("Historial de Análisis")
+        st.subheader("Historial de AnÃ¡lisis")
         
         # Filtros
         col1, col2 = st.columns(2)
@@ -876,7 +877,7 @@ def show_reports():
         for i, analysis in enumerate(st.session_state.analysis_results):
             patient = PatientManager.get_patient(analysis['patient_id'])
             if patient:
-                with st.expander(f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']}", 
+                with st.expander(f"AnÃ¡lisis #{i+1} - {patient['nombre']} {patient['apellido']}", 
                                expanded=False):
                     col1, col2 = st.columns(2)
                     
@@ -887,11 +888,11 @@ def show_reports():
                             st.write(f"**Imagen:** {analysis['image_name']}")
                     
                     with col2:
-                        if st.button(f"📄 Ver Reporte", key=f"report_{i}"):
+                        if st.button(f"ðŸ“„ Ver Reporte", key=f"report_{i}"):
                             pdf_buffer = ReportGenerator.create_pdf_report(
                                 patient, analysis['results'])
                             st.download_button(
-                                label="⬇️ Descargar PDF",
+                                label="â¬‡ï¸ Descargar PDF",
                                 data=pdf_buffer,
                                 file_name=f"Reporte_{patient['apellido']}_{i+1}.pdf",
                                 mime="application/pdf",
@@ -902,16 +903,16 @@ def show_reports():
         st.subheader("Generar Nuevo Reporte")
         
         if st.session_state.patients_db and st.session_state.analysis_results:
-            # Selección de análisis
+            # SelecciÃ³n de anÃ¡lisis
             analysis_options = []
             for i, analysis in enumerate(st.session_state.analysis_results):
                 patient = PatientManager.get_patient(analysis['patient_id'])
                 if patient:
                     analysis_options.append(
-                        f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}"
+                        f"AnÃ¡lisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}"
                     )
             
-            selected_analysis = st.selectbox("Seleccionar análisis:", analysis_options)
+            selected_analysis = st.selectbox("Seleccionar anÃ¡lisis:", analysis_options)
             
             if selected_analysis:
                 analysis_idx = int(selected_analysis.split('#')[1].split(' ')[0]) - 1
@@ -919,74 +920,74 @@ def show_reports():
                 patient = PatientManager.get_patient(analysis['patient_id'])
                 
                 # Opciones del reporte
-                include_images = st.checkbox("Incluir imágenes", value=True)
+                include_images = st.checkbox("Incluir imÃ¡genes", value=True)
                 include_recommendations = st.checkbox("Incluir recomendaciones", value=True)
-                include_technical_info = st.checkbox("Incluir información técnica", value=False)
+                include_technical_info = st.checkbox("Incluir informaciÃ³n tÃ©cnica", value=False)
                 
-                if st.button("📄 Generar Reporte Personalizado"):
+                if st.button("ðŸ“„ Generar Reporte Personalizado"):
                     pdf_buffer = ReportGenerator.create_pdf_report(patient, analysis['results'])
                     st.download_button(
-                        label="⬇️ Descargar Reporte",
+                        label="â¬‡ï¸ Descargar Reporte",
                         data=pdf_buffer,
                         file_name=f"Reporte_Personalizado_{patient['apellido']}.pdf",
                         mime="application/pdf"
                     )
     
     with tab3:
-        st.subheader("Estadísticas Generales")
+        st.subheader("EstadÃ­sticas Generales")
         show_statistics()
 
 def show_statistics():
     if not st.session_state.analysis_results:
-        st.info("No hay datos suficientes para mostrar estadísticas.")
+        st.info("No hay datos suficientes para mostrar estadÃ­sticas.")
         return
     
-    # Métricas generales
+    # MÃ©tricas generales
     total_analyses = len(st.session_state.analysis_results)
     total_patients = len(set(a['patient_id'] for a in st.session_state.analysis_results))
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("🔍 Total Análisis", total_analyses)
+        st.metric("ðŸ” Total AnÃ¡lisis", total_analyses)
     with col2:
-        st.metric("👥 Pacientes Únicos", total_patients)
+        st.metric("ðŸ‘¥ Pacientes Ãšnicos", total_patients)
     with col3:
         avg_analyses = total_analyses / len(st.session_state.patients_db) if st.session_state.patients_db else 0
-        st.metric("📊 Promedio por Paciente", f"{avg_analyses:.1f}")
+        st.metric("ðŸ“Š Promedio por Paciente", f"{avg_analyses:.1f}")
     with col4:
-        # Último análisis
+        # Ãšltimo anÃ¡lisis
         if st.session_state.analysis_results:
             last_analysis = max(st.session_state.analysis_results, 
                               key=lambda x: x['analysis_date'])
             days_since = (datetime.now() - last_analysis['analysis_date']).days
-            st.metric("📅 Último Análisis", f"Hace {days_since} días")
+            st.metric("ðŸ“… Ãšltimo AnÃ¡lisis", f"Hace {days_since} dÃ­as")
     
-    # Gráficos de tendencias
-    st.subheader("📈 Tendencias")
+    # GrÃ¡ficos de tendencias
+    st.subheader("ðŸ“ˆ Tendencias")
     
-    # Crear datos de ejemplo para gráficos
+    # Crear datos de ejemplo para grÃ¡ficos
     dates = [datetime.now() - pd.Timedelta(days=30-i) for i in range(30)]
-    analyses_per_day = np.random.poisson(2, 30)  # Simulación
+    analyses_per_day = np.random.poisson(2, 30)  # SimulaciÃ³n
     
     df_trend = pd.DataFrame({
         'Fecha': dates,
-        'Análisis': analyses_per_day
+        'AnÃ¡lisis': analyses_per_day
     })
     
-    fig = px.line(df_trend, x='Fecha', y='Análisis', 
-                 title="Análisis Realizados por Día (Últimos 30 días)")
+    fig = px.line(df_trend, x='Fecha', y='AnÃ¡lisis', 
+                 title="AnÃ¡lisis Realizados por DÃ­a (Ãšltimos 30 dÃ­as)")
     st.plotly_chart(fig, use_container_width=True)
 
 def show_email_sender():
-    st.header("📧 Envío de Resultados")
+    st.header("ðŸ“§ EnvÃ­o de Resultados")
     
     if not st.session_state.analysis_results:
-        st.warning("⚠️ No hay análisis disponibles para enviar.")
+        st.warning("âš ï¸ No hay anÃ¡lisis disponibles para enviar.")
         return
     
-    # Configuración SMTP
-    with st.expander("⚙️ Configuración de Email", expanded=False):
+    # ConfiguraciÃ³n SMTP
+    with st.expander("âš™ï¸ ConfiguraciÃ³n de Email", expanded=False):
         col1, col2 = st.columns(2)
         
         with col1:
@@ -995,31 +996,31 @@ def show_email_sender():
             sender_email = st.text_input("Email del remitente")
             
         with col2:
-            sender_password = st.text_input("Contraseña", type="password")
+            sender_password = st.text_input("ContraseÃ±a", type="password")
             use_tls = st.checkbox("Usar TLS", value=True)
     
-    # Selección de análisis para enviar
-    st.subheader("📋 Seleccionar Análisis")
+    # SelecciÃ³n de anÃ¡lisis para enviar
+    st.subheader("ðŸ“‹ Seleccionar AnÃ¡lisis")
     
     analysis_options = []
     for i, analysis in enumerate(st.session_state.analysis_results):
         patient = PatientManager.get_patient(analysis['patient_id'])
         if patient:
             analysis_options.append({
-                'label': f"Análisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}",
+                'label': f"AnÃ¡lisis #{i+1} - {patient['nombre']} {patient['apellido']} - {analysis['analysis_date'].strftime('%d/%m/%Y')}",
                 'index': i,
                 'patient': patient,
                 'analysis': analysis
             })
     
     selected_analyses = st.multiselect(
-        "Seleccionar análisis para enviar:",
+        "Seleccionar anÃ¡lisis para enviar:",
         options=analysis_options,
         format_func=lambda x: x['label']
     )
     
     if selected_analyses:
-        st.subheader("📧 Configurar Envío")
+        st.subheader("ðŸ“§ Configurar EnvÃ­o")
         
         # Destinatarios
         recipients = []
@@ -1028,7 +1029,7 @@ def show_email_sender():
             if patient.get('email'):
                 recipients.append(patient['email'])
         
-        # Opciones de envío
+        # Opciones de envÃ­o
         send_to_patient = st.checkbox("Enviar a pacientes", value=True)
         
         additional_emails = st.text_area(
@@ -1043,23 +1044,23 @@ def show_email_sender():
         # Personalizar email
         email_subject = st.text_input(
             "Asunto del email:",
-            value="Resultados de Análisis Colposcópico"
+            value="Resultados de AnÃ¡lisis ColposcÃ³pico"
         )
         
         email_body = st.text_area(
             "Mensaje personalizado:",
             value="""Estimado/a paciente,
 
-Adjunto encontrará los resultados de su análisis colposcópico.
+Adjunto encontrarÃ¡ los resultados de su anÃ¡lisis colposcÃ³pico.
 
-Por favor, consulte con su médico tratante para la interpretación de los resultados.
+Por favor, consulte con su mÃ©dico tratante para la interpretaciÃ³n de los resultados.
 
 Saludos cordiales,
-Equipo Médico"""
+Equipo MÃ©dico"""
         )
         
-        # Botón de envío
-        if st.button("📧 Enviar Reportes", type="primary"):
+        # BotÃ³n de envÃ­o
+        if st.button("ðŸ“§ Enviar Reportes", type="primary"):
             if sender_email and sender_password and recipients:
                 success_count = 0
                 error_count = 0
@@ -1101,25 +1102,25 @@ Equipo Médico"""
                             if success:
                                 success_count += 1
                                 with status_container:
-                                    st.success(f"✅ Enviado a {recipient}")
+                                    st.success(f"âœ… Enviado a {recipient}")
                             else:
                                 error_count += 1
                                 with status_container:
-                                    st.error(f"❌ Error enviando a {recipient}: {message}")
+                                    st.error(f"âŒ Error enviando a {recipient}: {message}")
                                     
                         except Exception as e:
                             error_count += 1
                             with status_container:
-                                st.error(f"❌ Error enviando a {recipient}: {str(e)}")
+                                st.error(f"âŒ Error enviando a {recipient}: {str(e)}")
                 
                 # Resumen final
-                st.success(f"🎉 Proceso completado: {success_count} enviados exitosamente, {error_count} errores")
+                st.success(f"ðŸŽ‰ Proceso completado: {success_count} enviados exitosamente, {error_count} errores")
                 
             else:
-                st.error("⚠️ Por favor complete la configuración SMTP y verifique que hay destinatarios válidos")
+                st.error("âš ï¸ Por favor complete la configuraciÃ³n SMTP y verifique que hay destinatarios vÃ¡lidos")
     
-    # Historial de envíos
-    st.subheader("📝 Historial de Envíos")
+    # Historial de envÃ­os
+    st.subheader("ðŸ“ Historial de EnvÃ­os")
     
     if 'email_history' not in st.session_state:
         st.session_state.email_history = []
@@ -1128,15 +1129,15 @@ Equipo Médico"""
         df_history = pd.DataFrame(st.session_state.email_history)
         st.dataframe(df_history, use_container_width=True)
     else:
-        st.info("No hay historial de envíos disponible.")
+        st.info("No hay historial de envÃ­os disponible.")
 
 def show_configuration():
-    st.header("⚙️ Configuración del Sistema")
+    st.header("âš™ï¸ ConfiguraciÃ³n del Sistema")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["🎨 Apariencia", "🤖 Modelo IA", "📧 Email", "💾 Datos"])
+    tab1, tab2, tab3, tab4 = st.tabs(["ðŸŽ¨ Apariencia", "ðŸ¤– Modelo IA", "ðŸ“§ Email", "ðŸ’¾ Datos"])
     
     with tab1:
-        st.subheader("Configuración de Apariencia")
+        st.subheader("ConfiguraciÃ³n de Apariencia")
         
         # Tema
         theme = st.se
@@ -1146,7 +1147,7 @@ import hashlib
 import re
 from datetime import timedelta
 
-# 1. Validación de datos mejorada
+# 1. ValidaciÃ³n de datos mejorada
 class DataValidator:
     @staticmethod
     def validate_email(email):
@@ -1155,7 +1156,7 @@ class DataValidator:
     
     @staticmethod
     def validate_identification(identification):
-        # Validar que solo contenga números y letras
+        # Validar que solo contenga nÃºmeros y letras
         return identification.isalnum() and len(identification) >= 5
     
     @staticmethod
@@ -1169,13 +1170,13 @@ class DataValidator:
             errors.append("Apellido debe tener al menos 2 caracteres")
         
         if not DataValidator.validate_identification(data.get('identificacion', '')):
-            errors.append("Identificación debe ser alfanumérica y tener al menos 5 caracteres")
+            errors.append("IdentificaciÃ³n debe ser alfanumÃ©rica y tener al menos 5 caracteres")
         
         if data.get('email') and not DataValidator.validate_email(data['email']):
-            errors.append("Formato de email inválido")
+            errors.append("Formato de email invÃ¡lido")
         
         if data.get('edad', 0) < 0 or data.get('edad', 0) > 120:
-            errors.append("Edad debe estar entre 0 y 120 años")
+            errors.append("Edad debe estar entre 0 y 120 aÃ±os")
         
         return errors
 
@@ -1216,7 +1217,7 @@ class DataPersistence:
     
     @staticmethod
     def auto_save():
-        """Guardado automático cada 5 minutos"""
+        """Guardado automÃ¡tico cada 5 minutos"""
         if 'last_save' not in st.session_state:
             st.session_state.last_save = datetime.now()
         
@@ -1224,16 +1225,16 @@ class DataPersistence:
             if DataPersistence.save_data():
                 st.session_state.last_save = datetime.now()
 
-# 3. Seguridad básica
+# 3. Seguridad bÃ¡sica
 class SecurityManager:
     @staticmethod
     def hash_password(password):
-        """Hash de contraseña"""
+        """Hash de contraseÃ±a"""
         return hashlib.sha256(password.encode()).hexdigest()
     
     @staticmethod
     def verify_password(password, hashed):
-        """Verificar contraseña"""
+        """Verificar contraseÃ±a"""
         return SecurityManager.hash_password(password) == hashed
     
     @staticmethod
@@ -1258,9 +1259,9 @@ class Logger:
     
     @staticmethod
     def log_analysis(patient_id, result_type, confidence):
-        """Log de análisis realizado"""
+        """Log de anÃ¡lisis realizado"""
         logger = logging.getLogger(__name__)
-        logger.info(f"Análisis realizado - Paciente: {patient_id}, Tipo: {result_type}, Confianza: {confidence}")
+        logger.info(f"AnÃ¡lisis realizado - Paciente: {patient_id}, Tipo: {result_type}, Confianza: {confidence}")
     
     @staticmethod
     def log_error(error_msg, context=""):
@@ -1272,7 +1273,7 @@ class Logger:
 class EnhancedImageAnalyzer(ImageAnalyzer):
     @staticmethod
     def preprocess_image(image):
-        """Preprocesamiento mejorado de imágenes"""
+        """Preprocesamiento mejorado de imÃ¡genes"""
         import cv2
         import numpy as np
         from PIL import ImageEnhance
@@ -1285,7 +1286,7 @@ class EnhancedImageAnalyzer(ImageAnalyzer):
         enhanced_img = enhancer.enhance(1.2)
         
         # Reducir ruido (simulado)
-        # En producción usar cv2.bilateralFilter o similar
+        # En producciÃ³n usar cv2.bilateralFilter o similar
         
         return enhanced_img
     
@@ -1295,12 +1296,12 @@ class EnhancedImageAnalyzer(ImageAnalyzer):
         # Convertir a array
         img_array = np.array(image)
         
-        # Verificar dimensiones mínimas
+        # Verificar dimensiones mÃ­nimas
         height, width = img_array.shape[:2]
         if height < 224 or width < 224:
-            return False, "Imagen muy pequeña (mínimo 224x224)"
+            return False, "Imagen muy pequeÃ±a (mÃ­nimo 224x224)"
         
-        # Verificar que no esté completamente negra o blanca
+        # Verificar que no estÃ© completamente negra o blanca
         mean_intensity = np.mean(img_array)
         if mean_intensity < 10:
             return False, "Imagen muy oscura"
@@ -1309,9 +1310,9 @@ class EnhancedImageAnalyzer(ImageAnalyzer):
         
         return True, "Calidad aceptable"
 
-# 6. Configuración centralizada
+# 6. ConfiguraciÃ³n centralizada
 class Config:
-    # Configuración por defecto
+    # ConfiguraciÃ³n por defecto
     DEFAULT_CONFIG = {
         'ui': {
             'theme': 'light',
@@ -1332,20 +1333,20 @@ class Config:
     
     @staticmethod
     def load_config():
-        """Cargar configuración"""
+        """Cargar configuraciÃ³n"""
         if 'app_config' not in st.session_state:
             st.session_state.app_config = Config.DEFAULT_CONFIG.copy()
         return st.session_state.app_config
     
     @staticmethod
     def save_config(config):
-        """Guardar configuración"""
+        """Guardar configuraciÃ³n"""
         st.session_state.app_config = config
-        # Aquí se podría guardar en archivo también
+        # AquÃ­ se podrÃ­a guardar en archivo tambiÃ©n
         
     @staticmethod
     def get_config_value(path, default=None):
-        """Obtener valor de configuración por ruta (ej: 'ui.theme')"""
+        """Obtener valor de configuraciÃ³n por ruta (ej: 'ui.theme')"""
         config = Config.load_config()
         keys = path.split('.')
         
@@ -1357,7 +1358,7 @@ class Config:
         
         return config
 
-# Modificar la función main para incluir mejoras
+# Modificar la funciÃ³n main para incluir mejoras
 def enhanced_main():
     # Configurar logging
     Logger.setup_logging()
@@ -1367,18 +1368,18 @@ def enhanced_main():
         DataPersistence.load_data()
         st.session_state.data_loaded = True
     
-    # Guardado automático
+    # Guardado automÃ¡tico
     DataPersistence.auto_save()
     
-    # Cargar configuración
+    # Cargar configuraciÃ³n
     config = Config.load_config()
     
-    # Resto del código main original...
+    # Resto del cÃ³digo main original...
     main()
     
     # Guardar datos al final
     DataPersistence.save_data()
 
-# Para usar las mejoras, reemplazar la línea final:
+# Para usar las mejoras, reemplazar la lÃ­nea final:
 # if __name__ == "__main__":
 #     enhanced_main()
