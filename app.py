@@ -1,17 +1,14 @@
-
 import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from sklearn.metrics import classification_report, confusion_matrix
 import io
 import time
+import random
 
 # Configuración de la página
 st.set_page_config(
@@ -114,36 +111,43 @@ def apply_filters(image):
         'sharpened': sharpened
     }
 
-# Modelo CNN simplificado para demostración
+# Modelo simulado para demostración (sin TensorFlow)
 @st.cache_resource
 def load_model():
-    """Carga o crea el modelo CNN"""
-    try:
-        # Intentar cargar modelo pre-entrenado
-        model = keras.models.load_model('colpovision_model.h5')
-        return model
-    except:
-        # Crear modelo de demostración
-        model = keras.Sequential([
-            layers.Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
-            layers.MaxPooling2D((2, 2)),
-            layers.Conv2D(64, (3, 3), activation='relu'),
-            layers.MaxPooling2D((2, 2)),
-            layers.Conv2D(128, (3, 3), activation='relu'),
-            layers.MaxPooling2D((2, 2)),
-            layers.Flatten(),
-            layers.Dropout(0.5),
-            layers.Dense(128, activation='relu'),
-            layers.Dense(4, activation='softmax')  # 4 clases: Normal, CIN1, CIN2, CIN3
-        ])
-        
-        model.compile(
-            optimizer='adam',
-            loss='categorical_crossentropy',
-            metrics=['accuracy']
-        )
-        
-        return model
+    """Crea un modelo simulado para demostración"""
+    # Simulamos un modelo con parámetros aleatorios
+    import random
+    random.seed(42)  # Para resultados consistentes
+    
+    class MockModel:
+        def __init__(self):
+            self.name = "ColpoVision Demo Model"
+            
+        def predict(self, image_batch, verbose=0):
+            # Simular predicción basada en características de la imagen
+            # En una implementación real, aquí iría el modelo entrenado
+            
+            # Obtener algunas características básicas de la imagen
+            mean_intensity = np.mean(image_batch[0])
+            std_intensity = np.std(image_batch[0])
+            
+            # Simular probabilidades basadas en características
+            if mean_intensity > 0.6:  # Imagen más clara
+                probs = [0.7, 0.2, 0.08, 0.02]  # Más probable Normal
+            elif mean_intensity < 0.3:  # Imagen más oscura
+                probs = [0.3, 0.4, 0.2, 0.1]   # Más probable CIN I
+            else:
+                probs = [0.5, 0.3, 0.15, 0.05]  # Distribución intermedia
+                
+            # Agregar algo de variabilidad
+            noise = np.random.normal(0, 0.05, 4)
+            probs = np.array(probs) + noise
+            probs = np.abs(probs)  # Asegurar valores positivos
+            probs = probs / np.sum(probs)  # Normalizar
+            
+            return np.array([probs])
+    
+    return MockModel()
 
 def predict_image(model, image):
     """Realiza predicción sobre la imagen"""
