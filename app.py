@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
@@ -26,7 +26,7 @@ import plotly.graph_objects as go
 
 # ConfiguraciÃ³n de la pÃ¡gina
 st.set_page_config(
-st.title("ðŸ©º ColpoVision - AnÃ¡lisis de ColposcopÃ­a")
+st.title("🩺 ColpoVision - Análisis de Colposcopía")
     page_title="ColpoVision - AnÃ¡lisis de ColposcopÃ­a",
     page_icon="ðŸ”¬",
     layout="wide",
