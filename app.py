@@ -650,6 +650,6 @@ def show_batch_analysis(patient):
             results_container = st.container()
             
             batch_results = []
-            
-            for i, uploaded_file in enumerate(uploaded_files):
-    print(uploaded_file)  # ¡Indentado con 4 espacios!
+
+for i, uploaded_file in enumerate(uploaded_files):
+    print(uploaded_file)  # 4 espacios aquí
