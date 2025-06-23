@@ -45,6 +45,8 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
+    </style>
+    """, unsafe_allow_html=True)
     .patient-card {
         background: #f8f9fa;
         padding: 1rem;
