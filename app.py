@@ -882,7 +882,7 @@ def show_reports():
                                expanded=False):
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.write(f"**Fecha:** {analysis['analysis_date'].strftime('%d/%m/%Y %H:%M')}")
+                        st.write(f"**Fecha:** {analysis.get('analysis_date','No disponible).strftime('%d/%m/%Y %H:%M')}")
                         st.write(f"**Paciente:** {patient['nombre']} {patient['apellido']}")
                         if 'image_name' in analysis:
                             st.write(f"**Imagen:** {analysis['image_name']}")
