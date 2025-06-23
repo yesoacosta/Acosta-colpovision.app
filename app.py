@@ -26,12 +26,12 @@ import plotly.graph_objects as go
 
 # ConfiguraciÃ³n de la pÃ¡gina
 st.set_page_config(
-st.title("🩺 ColpoVision - Análisis de Colposcopía")
+
     page_title="ColpoVision - AnÃ¡lisis de ColposcopÃ­a",
     page_icon="ðŸ”¬",
     layout="wide",
     initial_sidebar_state="expanded"
-)
+)st.title("🩺 ColpoVision - Análisis de Colposcopía")
 
 # CSS personalizado
 st.markdown("""
