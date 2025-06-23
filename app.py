@@ -31,7 +31,8 @@ st.set_page_config(
     page_icon="ðŸ”¬",
     layout="wide",
     initial_sidebar_state="expanded"
-)st.title("🩺 ColpoVision - Análisis de Colposcopía")
+)
+st.title("🩺 ColpoVision - Análisis de Colposcopía")
 
 # CSS personalizado
 st.markdown("""
